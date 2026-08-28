@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PrepProfit Pro — Dashboard</title>
+<style>
+  :root{
+    --sidebar-bg:#1A0E3E;
+    --sidebar-active:#4B32A6;
+    --sidebar-hover:#2A1B5E;
+    --sidebar-text:#B9AEDD;
+    --accent:#219A8A;
+    --accent-light:#DBF0EC;
+    --accent-dark:#167A6D;
+    --gold:#D4AF37;
+    --bg-app:#EEF3F9;
+    --surface:#FFFFFF;
+    --text:#171532;
+    --text-muted:#6B7186;
+    --border:#E4E8F1;
+    --red:#D6534A;
+    --red-bg:#FBE9E8;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;color:var(--text);background:var(--bg-app);}
+  .app{display:flex;min-height:100vh;}
+
+  /* SIDEBAR */
+  .sidebar{width:250px;flex-shrink:0;background:var(--sidebar-bg);padding:26px 16px;display:flex;flex-direction:column;}
+  .brand{display:flex;align-items:center;gap:10px;padding:4px 10px 30px 10px;}
+  .brand-badge{width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 35% 30%, var(--gold), #8a6f19);flex-shrink:0;}
+  .brand-name{color:#fff;font-weight:800;font-size:17px;letter-spacing:.2px;}
+  .brand-name .tm{font-size:10px;vertical-align:super;}
+  nav{display:flex;flex-direction:column;gap:4px;}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;color:var(--sidebar-text);font-size:14.5px;font-weight:600;cursor:pointer;transition:background .15s,color .15s;user-select:none;}
+  .nav-item svg{width:18px;height:18px;flex-shrink:0;opacity:.9;}
+  .nav-item:hover{background:var(--sidebar-hover);color:#fff;}
+  .nav-item.active{background:var(--sidebar-active);color:#fff;}
+  .sidebar-foot{margin-top:auto;padding:14px 10px 4px;color:#7C74A6;font-size:12px;line-height:1.5;}
+
+  /* MAIN */
+  .main{flex:1;min-width:0;padding:34px 42px 60px;}
+  .page{display:none;}
+  .page.active{display:block;}
+  .page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;margin-bottom:26px;}
+  .page-title{font-size:30px;font-weight:800;margin:0 0 6px 0;letter-spacing:-.3px;}
+  .page-sub{color:var(--text-muted);font-size:14.5px;max-width:640px;line-height:1.5;margin:0;}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .btn{border-radius:10px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--text);transition:transform .08s, box-shadow .15s;white-space:nowrap;}
+  .btn:hover{box-shadow:0 2px 8px rgba(20,20,50,.08);}
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .btn-primary:hover{background:var(--accent-dark);}
+  .btn-dark{background:var(--sidebar-bg);border-color:var(--sidebar-bg);color:#fff;}
+  .btn-sm{padding:7px 12px;font-size:12.5px;border-radius:8px;}
+
+  /* KPI CARDS */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:18px;margin-bottom:26px;}
+  .kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 20px 18px;box-shadow:0 1px 2px rgba(20,20,50,.04);}
+  .kpi-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:10px;}
+  .kpi-value{font-size:26px;font-weight:800;letter-spacing:-.4px;}
+  .kpi-value.alert{color:var(--red);}
+  .kpi-value.good{color:var(--accent-dark);}
+  .kpi-note{font-size:12px;color:var(--text-muted);margin-top:6px;}
+
+  /* CARD / TABLE SHELL */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:0 1px 2px rgba(20,20,50,.04);margin-bottom:22px;}
+  .card-title{font-size:16px;font-weight:800;margin:0 0 4px;}
+  .card-sub{font-size:13px;color:var(--text-muted);margin:0 0 16px;}
+  .charts-row{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;}
+  @media(max-width:900px){.charts-row{grid-template-columns:1fr;}}
+
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center;}
+  select, input[type=text], input[type=search], input[type=number]{border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:13.5px;color:var(--text);background:#fff;font-family:inherit;}
+  input[type=search]{flex:1;min-width:180px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.6px;}
+  thead th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);font-weight:800;padding:10px 12px;border-bottom:1px solid var(--border);}
+  tbody td{padding:14px 12px;border-bottom:1px solid var(--border);}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:#FAFBFE;}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;}
+  th.num{text-align:right;}
+  .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11.5px;font-weight:700;}
+  .pill-good{background:var(--accent-light);color:var(--accent-dark);}
+  .pill-bad{background:var(--red-bg);color:var(--red);}
+  .pill-wait{background:#FFF3D6;color:#8A6212;}
+
+  /* IMPORT PAGE */
+  .dropzone{border:2px dashed #C7CEDD;border-radius:16px;padding:50px 20px;text-align:center;background:#FAFBFE;cursor:pointer;transition:border-color .15s, background .15s;}
+  .dropzone:hover, .dropzone.drag{border-color:var(--accent);background:var(--accent-light);}
+  .dropzone .icon{width:46px;height:46px;border-radius:12px;background:var(--accent-light);color:var(--accent-dark);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
+  .dropzone h4{margin:0 0 6px;font-size:16px;}
+  .dropzone p{margin:0;color:var(--text-muted);font-size:13px;}
+  .field-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:6px;}
+  .field label{display:block;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);margin-bottom:6px;}
+  .field input, .field select{width:100%;}
+  .divider-label{display:flex;align-items:center;gap:12px;color:var(--text-muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin:26px 0 18px;}
+  .divider-label::before,.divider-label::after{content:"";flex:1;height:1px;background:var(--border);}
+
+  .period-toggle{display:inline-flex;background:#F2F4F9;border-radius:10px;padding:4px;gap:4px;}
+  .period-toggle button{border:none;background:transparent;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;color:var(--text-muted);cursor:pointer;}
+  .period-toggle button.active{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(20,20,50,.12);}
+
+  .empty{text-align:center;padding:40px 10px;color:var(--text-muted);}
+  .checkbox{width:16px;height:16px;accent-color:var(--accent);}
+
+  /* CHARTS (hand-rolled SVG, no external deps) */
+  .bar-chart{display:flex;align-items:flex-end;gap:10px;height:220px;padding-top:20px;}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:8px;}
+  .bar-col .bar{width:100%;max-width:34px;background:var(--accent);border-radius:6px 6px 3px 3px;position:relative;transition:height .3s;}
+  .bar-col .bar .tip{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;color:var(--text-muted);white-space:nowrap;}
+  .bar-col .mlabel{font-size:11.5px;color:var(--text-muted);font-weight:600;}
+  .donut-wrap{display:flex;align-items:center;gap:26px;padding:10px 0;flex-wrap:wrap;justify-content:center;}
+  .donut-legend{display:flex;flex-direction:column;gap:10px;}
+  .donut-legend .li{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;}
+  .donut-legend .dot{width:11px;height:11px;border-radius:3px;flex-shrink:0;}
+  .donut-legend .amt{color:var(--text-muted);font-weight:500;}
+
+  /* NEW: modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(10,8,30,.45);display:none;align-items:center;justify-content:center;z-index:60;padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:#fff;border-radius:16px;padding:26px;max-width:660px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(10,8,30,.3);}
+  .modal h3{margin:0 0 4px;font-size:18px;}
+  .modal .modal-sub{color:var(--text-muted);font-size:13px;margin:0 0 18px;}
+  .check-row{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;}
+
+  /* NEW: row actions */
+  .row-actions{display:flex;gap:6px;justify-content:flex-end;}
+  .icon-btn{border:1px solid var(--border);background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px;font-weight:700;color:var(--text-muted);white-space:nowrap;}
+  .icon-btn:hover{background:#F2F4F9;color:var(--text);}
+  .icon-btn.danger:hover{background:var(--red-bg);color:var(--red);border-color:var(--red-bg);}
+
+  /* NEW: goal progress */
+  .goal-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;font-size:13.5px;flex-wrap:wrap;gap:6px;}
+  .goal-row strong{font-size:15px;}
+  .progress-wrap{background:#F2F4F9;border-radius:999px;height:14px;overflow:hidden;}
+  .progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-dark));border-radius:999px;transition:width .3s;}
+  .progress-bar.over{background:linear-gradient(90deg,var(--gold),#a9861f);}
+
+  /* NEW: team leaderboard */
+  .rank-badge{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#F2F4F9;font-weight:800;font-size:12px;color:var(--text-muted);}
+  .rank-badge.gold{background:#FBEFCB;color:#8A6212;}
+  .badge-you{background:var(--accent-light);color:var(--accent-dark);padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;margin-left:6px;}
+
+  /* NEW: settings */
+  .settings-section{margin-bottom:30px;}
+  .settings-section:last-child{margin-bottom:0;}
+  .settings-section h4{margin:0 0 4px;font-size:15px;}
+  .settings-section .card-sub{margin-bottom:16px;}
+  .preparer-row{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;}
+  .preparer-row input[type=text]{min-width:0;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-badge"></div>
+      <div class="brand-name">PrepProfit Pro<span class="tm">™</span></div>
+    </div>
+    <nav>
+      <div class="nav-item active" data-page="overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Overview
+      </div>
+      <div class="nav-item" data-page="import">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+        Add Returns
+      </div>
+      <div class="nav-item" data-page="log">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        Client Job Log
+      </div>
+      <div class="nav-item" data-page="referrals">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="18" cy="8.5" r="2.6"/><path d="M15.8 14.2c2.9.4 5.2 2.5 5.2 5.8"/></svg>
+        Referral Summary
+      </div>
+      <div class="nav-item" data-page="income">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19h16"/><rect x="6" y="10" width="3" height="7"/><rect x="11" y="6" width="3" height="11"/><rect x="16" y="13" width="3" height="4"/></svg>
+        Income Summary
+      </div>
+      <div class="nav-item" data-page="trends">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M21 7v6h-6"/></svg>
+        Trends &amp; Goals
+      </div>
+      <div class="nav-item" data-page="team">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="3.2"/><circle cx="17" cy="9" r="2.6"/><path d="M1.8 20.5c0-3.7 2.9-6.2 6.2-6.2s6.2 2.5 6.2 6.2"/><path d="M14.6 14.6c2.6.5 4.6 2.5 4.6 5.4"/></svg>
+        Team
+      </div>
+      <div class="nav-item" data-page="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+        Settings
+      </div>
+    </nav>
+    <div class="sidebar-foot" id="sidebar-foot">Live business snapshot</div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- OVERVIEW -->
+    <section class="page active" id="page-overview">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Overview</h1>
+          <p class="page-sub">Your business at a glance — earnings, referrals, and outstanding balances, updated as you log returns.</p>
+        </div>
+        <div class="actions">
+          <select id="overview-view" onchange="setView(this.value)" title="Viewing"></select>
+          <button class="btn btn-primary" onclick="goTo('import')">+ Add Return</button>
+        </div>
+      </div>
+
+      <div class="kpi-grid" id="kpi-grid"></div>
+
+      <div class="card" id="goal-card" style="display:none;">
+        <div class="card-title">Annual Goal Progress</div>
+        <div class="card-sub" id="goal-sub"></div>
+        <div id="goal-body"></div>
+      </div>
+
+      <div class="charts-row">
+        <div class="card">
+          <div class="card-title">Earnings by Month</div>
+          <div class="card-sub" id="chartMonthly-sub">Deposits received, current calendar year</div>
+          <div id="chartMonthly"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Earnings Split</div>
+          <div class="card-sub">Preparer vs. company, across all logged returns in view</div>
+          <div id="chartSplit"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Recent Returns</div>
+        <div class="card-sub">Latest activity from your Client Job Log</div>
+        <div id="recent-table"></div>
+      </div>
+    </section>
+
+    <!-- IMPORT / ADD RETURNS -->
+    <section class="page" id="page-import">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Add Returns</h1>
+          <p class="page-sub">Drop a CSV export of your job log, or add a single return by hand. New rows flow straight into your Client Job Log and Overview totals.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="field" style="max-width:280px;margin-bottom:18px;">
+          <label>Assign new rows to preparer</label>
+          <select id="import-preparer"></select>
+        </div>
+
+        <div class="dropzone" id="dropzone">
+          <div class="icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+          </div>
+          <h4>Drop a CSV here, or click to browse</h4>
+          <p>Columns: Return ID, Client Name, Tax Year, Service, Federal Amount, Preparer Fee</p>
+          <input type="file" id="fileInput" accept=".csv" style="display:none">
+        </div>
+
+        <div id="confirmArea" style="display:none;">
+          <div class="divider-label">Confirm extracted rows</div>
+          <div id="confirmTableWrap"></div>
+          <div class="actions" style="margin-top:16px;justify-content:flex-end;">
+            <button class="btn" onclick="cancelImport()">Cancel</button>
+            <button class="btn btn-primary" id="importBtn" onclick="confirmImport()">Import selected</button>
+          </div>
+        </div>
+
+        <div class="divider-label">Or add one manually</div>
+        <div class="field-grid">
+          <div class="field"><label>Return ID</label><input type="text" id="f-id" placeholder="Lastname-007"></div>
+          <div class="field"><label>Client Name</label><input type="text" id="f-client" placeholder="A. Addison"></div>
+          <div class="field"><label>Tax Year</label>
+            <select id="f-year"><option>2024</option><option>2025</option><option selected>2026</option><option>2027</option></select>
+          </div>
+          <div class="field"><label>Service</label>
+            <select id="f-service"><option>W-2</option><option selected>Schedule C</option><option>Amendment</option><option>Multiple Filings</option></select>
+          </div>
+          <div class="field"><label>Federal Return Amount</label><input type="text" id="f-federal" placeholder="4200"></div>
+          <div class="field"><label>Preparer Fee</label><input type="text" id="f-fee" placeholder="650"></div>
+          <div class="field"><label>Referral Partner</label><input type="text" id="f-refpartner" placeholder="optional"></div>
+          <div class="field" style="display:flex;align-items:flex-end;padding-bottom:2px;">
+            <label class="check-row" style="margin-bottom:0;"><input type="checkbox" class="checkbox" id="f-refeligible"> Referral eligible</label>
+          </div>
+        </div>
+        <div class="actions" style="margin-top:18px;">
+          <button class="btn btn-primary" onclick="addManual()">Add return</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLIENT JOB LOG -->
+    <section class="page" id="page-log">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Client Job Log</h1>
+          <p class="page-sub"><span id="log-count"></span> returns logged</p>
+        </div>
+        <div class="actions">
+          <button class="btn" onclick="exportCSV()">Export CSV</button>
+          <button class="btn btn-primary" onclick="goTo('import')">+ Add Return</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="toolbar">
+          <select id="filter-year" onchange="renderLog()"><option value="all">All tax years</option></select>
+          <select id="filter-service" onchange="renderLog()"><option value="all">All services</option></select>
+          <select id="filter-preparer" onchange="renderLog()"><option value="all">All preparers</option></select>
+          <input type="search" id="filter-search" placeholder="Search client or return ID…" oninput="renderLog()">
+        </div>
+        <div id="log-table"></div>
+      </div>
+    </section>
+
+    <!-- REFERRAL SUMMARY -->
+    <section class="page" id="page-referrals">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Referral Summary</h1>
+          <p class="page-sub" id="referral-sub">Track who you owe and who's been paid.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">By Partner</div>
+        <div class="card-sub">Rolled up across all preparers</div>
+        <div id="referral-table"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Referral Detail</div>
+        <div class="card-sub">Every referral-eligible return — toggle paid status per client</div>
+        <div id="referral-detail-table"></div>
+      </div>
+    </section>
+
+    <!-- INCOME SUMMARY -->
+    <section class="page" id="page-income">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Income Summary</h1>
+          <p class="page-sub" id="income-sub">Fiscal Year — monthly detail rolling up to the annual total</p>
+        </div>
+        <div class="actions">
+          <button class="btn" onclick="window.print()">Print</button>
+          <button class="btn" onclick="exportIncomeCSV()">Export CSV</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="toolbar" style="justify-content:space-between;">
+          <div class="period-toggle" id="period-toggle">
+            <button class="active" data-period="year">Full Year</button>
+            <button data-period="h1">H1</button>
+            <button data-period="h2">H2</button>
+          </div>
+          <select id="filter-preparer-income" onchange="renderIncome()"><option value="all">All preparers</option></select>
+        </div>
+        <div style="overflow-x:auto;margin-top:18px;">
+          <div id="income-table"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRENDS & GOALS -->
+    <section class="page" id="page-trends">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Trends &amp; Goals</h1>
+          <p class="page-sub">Year-over-year performance and progress toward your annual earnings goal.</p>
+        </div>
+        <div class="actions">
+          <select id="trends-view" onchange="setView(this.value)" title="Viewing"></select>
+        </div>
+      </div>
+
+      <div class="kpi-grid" id="trends-kpi-grid"></div>
+
+      <div class="card" id="trends-goal-card" style="display:none;">
+        <div class="card-title">Annual Goal Progress</div>
+        <div class="card-sub" id="trends-goal-sub"></div>
+        <div id="trends-goal-body"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">This Year vs. Last Year</div>
+        <div class="card-sub">Monthly earnings comparison</div>
+        <div id="chartYoY"></div>
+      </div>
+    </section>
+
+    <!-- TEAM -->
+    <section class="page" id="page-team">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Team</h1>
+          <p class="page-sub">Company-wide rollup across every preparer, regardless of who's viewing.</p>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="goTo('settings')">+ Manage Preparers</button>
+        </div>
+      </div>
+      <div class="kpi-grid" id="team-kpi-grid"></div>
+      <div class="card">
+        <div class="card-title">Leaderboard</div>
+        <div class="card-sub">Ranked by preparer earnings</div>
+        <div id="team-table"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="page" id="page-settings">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Settings</h1>
+          <p class="page-sub">Configure your split, referral payout, goal, preparers, and manage your data.</p>
+        </div>
+      </div>
+
+      <div class="card settings-section">
+        <h4>Company &amp; Defaults</h4>
+        <p class="card-sub">The split and referral amount apply to every preparer unless overridden below.</p>
+        <div class="field-grid">
+          <div class="field"><label>Company you work under</label><input type="text" id="set-company" placeholder="e.g. Summit Tax Group"></div>
+          <div class="field"><label>Default preparer split (%)</label><input type="number" id="set-split" min="0" max="100" step="1"></div>
+          <div class="field"><label>Referral payout ($)</label><input type="number" id="set-referral" min="0" step="5"></div>
+          <div class="field"><label>Annual earnings goal ($)</label><input type="number" id="set-goal" min="0" step="500"></div>
+        </div>
+        <div class="actions" style="margin-top:16px;">
+          <button class="btn btn-primary" onclick="saveSettingsForm()">Save settings</button>
+        </div>
+      </div>
+
+      <div class="card settings-section">
+        <h4>Preparers</h4>
+        <p class="card-sub">Add every preparer working under this company. Leave split blank to use the default above.</p>
+        <div id="preparer-list"></div>
+        <div class="actions" style="margin-top:6px;">
+          <button class="btn" onclick="addPreparer()">+ Add preparer</button>
+        </div>
+      </div>
+
+      <div class="card settings-section">
+        <h4>Data</h4>
+        <p class="card-sub">Everything is stored locally in this browser. Back it up before clearing your browser data.</p>
+        <div class="actions">
+          <button class="btn" onclick="exportBackup()">Export backup (JSON)</button>
+          <button class="btn" onclick="document.getElementById('backupFileInput').click()">Import backup</button>
+          <input type="file" id="backupFileInput" accept=".json" style="display:none" onchange="importBackupFile(event)">
+          <button class="btn" onclick="resetSampleData()">Reset to sample data</button>
+          <button class="btn" style="border-color:var(--red-bg);color:var(--red);" onclick="clearAllData()">Clear all data</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- EDIT RETURN MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h3>Edit Return</h3>
+    <p class="modal-sub">Update details, mark collected, or manage referral status.</p>
+    <div class="field-grid">
+      <div class="field"><label>Return ID</label><input type="text" id="e-id"></div>
+      <div class="field"><label>Client Name</label><input type="text" id="e-client"></div>
+      <div class="field"><label>Tax Year</label><select id="e-year"><option>2024</option><option>2025</option><option>2026</option><option>2027</option></select></div>
+      <div class="field"><label>Service</label><select id="e-service"><option>W-2</option><option>Schedule C</option><option>Amendment</option><option>Multiple Filings</option></select></div>
+      <div class="field"><label>Federal Return Amount</label><input type="text" id="e-federal"></div>
+      <div class="field"><label>Preparer Fee</label><input type="text" id="e-fee"></div>
+      <div class="field"><label>Preparer</label><select id="e-preparer"></select></div>
+      <div class="field"><label>Deposit Month</label><select id="e-month"></select></div>
+      <div class="field"><label>Deposit Calendar Year</label><input type="text" id="e-payyear"></div>
+      <div class="field"><label>Referral Partner</label><input type="text" id="e-refpartner" placeholder="optional"></div>
+    </div>
+    <div class="actions" style="margin-top:16px;gap:20px;">
+      <label class="check-row"><input type="checkbox" class="checkbox" id="e-collected"> Fee collected</label>
+      <label class="check-row"><input type="checkbox" class="checkbox" id="e-refeligible"> Referral eligible</label>
+      <label class="check-row"><input type="checkbox" class="checkbox" id="e-refpaid"> Referral paid</label>
+    </div>
+    <div class="actions" style="margin-top:20px;justify-content:flex-end;">
+      <button class="btn" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------------- CONSTANTS ---------------- */
+const STORAGE_KEY = "prepprofit_pro_data_v1";
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const money = n => "$" + (n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const moneyShort = n => "$" + Math.round(n||0).toLocaleString();
+const escapeHtml = s => String(s??"").replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const thisCalendarYear = new Date().getFullYear();
+
+/* ---------------- DATA MODEL ---------------- */
+let RETURNS = [];
+let PREPARERS = [];
+let SETTINGS = {};
+let uidCounter = 0;
+let currentView = "all"; // "all" or a preparer id — drives Overview & Trends
+
+function sampleData(){
+  const preparers = [
+    {id:"p1", name:"You", splitOverride:null},
+    {id:"p2", name:"M. Alvarez", splitOverride:null},
+    {id:"p3", name:"D. Brooks", splitOverride:0.65},
+  ];
+  const returns = [
+    {id:"EXAMPLE-001", client:"E. Cook",   year:2025, service:"Schedule C",       federal:6093, fee:1000, preparerId:"p1", refPartner:"",           refEligible:false, refPaid:false, collected:true,  month:4,  payYear:2025},
+    {id:"Rivera-002",  client:"J. Rivera", year:2025, service:"W-2",              federal:3410, fee:350,  preparerId:"p1", refPartner:"M. Alvarez", refEligible:true,  refPaid:true,  collected:true,  month:2,  payYear:2025},
+    {id:"Chen-003",    client:"L. Chen",   year:2026, service:"Schedule C",       federal:8120, fee:1200, preparerId:"p2", refPartner:"",           refEligible:false, refPaid:false, collected:true,  month:3,  payYear:2026},
+    {id:"Patel-004",   client:"R. Patel",  year:2025, service:"Amendment",        federal:1875, fee:450,  preparerId:"p1", refPartner:"D. Brooks",  refEligible:true,  refPaid:false, collected:true,  month:5,  payYear:2025},
+    {id:"Osei-005",    client:"K. Osei",   year:2026, service:"Multiple Filings", federal:5530, fee:980,  preparerId:"p3", refPartner:"",           refEligible:false, refPaid:false, collected:false, month:null, payYear:2026},
+    {id:"Nguyen-006",  client:"T. Nguyen", year:2026, service:"Schedule C",       federal:4275, fee:700,  preparerId:"p2", refPartner:"",           refEligible:false, refPaid:false, collected:true,  month:6,  payYear:2026},
+    {id:"Ward-007",    client:"S. Ward",   year:2025, service:"W-2",              federal:2890, fee:300,  preparerId:"p1", refPartner:"",           refEligible:false, refPaid:false, collected:true,  month:3,  payYear:2025},
+    {id:"Diaz-008",    client:"F. Diaz",   year:2026, service:"Schedule C",       federal:7200, fee:1100, preparerId:"p1", refPartner:"M. Alvarez", refEligible:true,  refPaid:false, collected:true,  month:2,  payYear:2026},
+  ];
+  const settings = {
+    companyName:"Summit Tax Group",
+    defaultSplit:0.70,
+    referralAmount:100,
+    annualGoal:20000,
+    currentPreparerId:"p1",
+    lastView:"p1",
+  };
+  return {returns, preparers, settings};
+}
+
+function seedDefaults(blank){
+  if(blank){
+    PREPARERS = [{id:"p1", name:"You", splitOverride:null}];
+    RETURNS = [];
+    SETTINGS = {companyName:"", defaultSplit:0.70, referralAmount:100, annualGoal:0, currentPreparerId:"p1", lastView:"p1"};
+  } else {
+    const d = sampleData();
+    PREPARERS = d.preparers;
+    RETURNS = d.returns;
+    SETTINGS = d.settings;
+  }
+  assignUids();
+  currentView = SETTINGS.lastView || "all";
+}
+
+function assignUids(){
+  uidCounter = 0;
+  RETURNS.forEach(r=>{ r._uid = ++uidCounter; });
+}
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw){ seedDefaults(false); saveData(); return; }
+    const parsed = JSON.parse(raw);
+    if(!parsed || !Array.isArray(parsed.RETURNS) || !Array.isArray(parsed.PREPARERS) || !parsed.SETTINGS) throw new Error("bad shape");
+    RETURNS = parsed.RETURNS;
+    PREPARERS = parsed.PREPARERS;
+    SETTINGS = parsed.SETTINGS;
+    if(PREPARERS.length===0) PREPARERS = [{id:"p1", name:"You", splitOverride:null}];
+    uidCounter = 0;
+    RETURNS.forEach(r=>{ if(!r._uid){ r._uid = ++uidCounter; } else { uidCounter = Math.max(uidCounter, r._uid); } });
+    currentView = SETTINGS.lastView || "all";
+  }catch(err){
+    seedDefaults(false);
+    saveData();
+  }
+}
+function saveData(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({RETURNS, PREPARERS, SETTINGS}));
+}
+
+function preparerFor(id){
+  return PREPARERS.find(p=>p.id===id) || {id:id||"unknown", name:"Unassigned", splitOverride:null};
+}
+function splitFor(r){
+  const p = preparerFor(r.preparerId);
+  const override = p.splitOverride;
+  const s = (override!==null && override!==undefined && override!=="") ? Number(override) : SETTINGS.defaultSplit;
+  return Math.min(1, Math.max(0, s));
+}
+function derive(r){
+  const split = splitFor(r);
+  return {
+    ...r,
+    preparerName: preparerFor(r.preparerId).name,
+    split,
+    yourShare: r.fee*split,
+    companyShare: r.fee*(1-split),
+    referralPayout: r.refEligible ? SETTINGS.referralAmount : 0,
+    netRefund: r.federal - r.fee,
+    outstanding: !r.collected ? r.fee : 0,
+  };
+}
+
+/* ---------------- NAV ---------------- */
+document.querySelectorAll(".nav-item").forEach(el=>{
+  el.addEventListener("click", ()=>goTo(el.dataset.page));
+});
+function goTo(page){
+  document.querySelectorAll(".nav-item").forEach(el=>el.classList.toggle("active", el.dataset.page===page));
+  document.querySelectorAll(".page").forEach(el=>el.classList.toggle("active", el.id==="page-"+page));
+}
+
+/* ---------------- SELECT HELPERS ---------------- */
+function populateSelectPreserve(elId, optionsHtml, forceValue){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  const prev = forceValue!==undefined ? forceValue : el.value;
+  el.innerHTML = optionsHtml;
+  if([...el.options].some(o=>o.value===prev)) el.value = prev;
+}
+function preparerOptionsHtml(includeAll, allLabel){
+  const opts = PREPARERS.map(p=>`<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join("");
+  return (includeAll ? `<option value="all">${allLabel||"All preparers"}</option>` : "") + opts;
+}
+function populatePreparerSelects(){
+  populateSelectPreserve("filter-preparer", preparerOptionsHtml(true, "All preparers"));
+  populateSelectPreserve("filter-preparer-income", preparerOptionsHtml(true, "All preparers"));
+  populateSelectPreserve("import-preparer", preparerOptionsHtml(false), SETTINGS.currentPreparerId);
+  populateSelectPreserve("overview-view", preparerOptionsHtml(true, "All Preparers (Company View)"), currentView);
+  populateSelectPreserve("trends-view", preparerOptionsHtml(true, "All Preparers (Company View)"), currentView);
+}
+function setView(v){
+  currentView = v;
+  SETTINGS.lastView = v;
+  saveData();
+  populatePreparerSelects();
+  renderOverview();
+  renderTrends();
+}
+
+/* ---------------- CHARTS (hand-rolled SVG) ---------------- */
+function renderBarChart(elId, labels, values){
+  const max = Math.max(1, ...values);
+  document.getElementById(elId).innerHTML = `<div class="bar-chart">
+    ${values.map((v,i)=>{
+      const h = Math.max(2, Math.round((v/max)*160));
+      return `<div class="bar-col">
+        <div class="bar" style="height:${h}px;">${v>0?`<span class="tip">${moneyShort(v)}</span>`:""}</div>
+        <div class="mlabel">${labels[i]}</div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+function renderGroupedBarChart(elId, labels, seriesA, seriesB, nameA, nameB, colorA, colorB){
+  const max = Math.max(1, ...seriesA, ...seriesB);
+  document.getElementById(elId).innerHTML = `
+    <div style="display:flex;gap:20px;margin-bottom:16px;">
+      <div class="li" style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;"><span class="dot" style="width:11px;height:11px;border-radius:3px;display:inline-block;background:${colorA}"></span>${escapeHtml(nameA)}</div>
+      <div class="li" style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;"><span class="dot" style="width:11px;height:11px;border-radius:3px;display:inline-block;background:${colorB}"></span>${escapeHtml(nameB)}</div>
+    </div>
+    <div class="bar-chart">
+      ${labels.map((lab,i)=>{
+        const ha = Math.max(2, Math.round((seriesA[i]/max)*160));
+        const hb = Math.max(2, Math.round((seriesB[i]/max)*160));
+        return `<div class="bar-col">
+          <div style="display:flex;gap:3px;align-items:flex-end;height:160px;">
+            <div class="bar" style="width:14px;height:${ha}px;background:${colorA};border-radius:4px 4px 2px 2px;"></div>
+            <div class="bar" style="width:14px;height:${hb}px;background:${colorB};border-radius:4px 4px 2px 2px;"></div>
+          </div>
+          <div class="mlabel">${lab}</div>
+        </div>`;
+      }).join("")}
+    </div>`;
+}
+function renderDonut(elId, segments){ // [{label, value, color}]
+  const total = segments.reduce((s,x)=>s+x.value,0) || 1;
+  const r = 60, c = 2*Math.PI*r;
+  let offset = 0;
+  const circles = segments.map(seg=>{
+    const frac = seg.value/total;
+    const len = frac*c;
+    const el = `<circle cx="80" cy="80" r="${r}" fill="none" stroke="${seg.color}" stroke-width="26"
+      stroke-dasharray="${len} ${c-len}" stroke-dashoffset="${-offset}" transform="rotate(-90 80 80)"/>`;
+    offset += len;
+    return el;
+  }).join("");
+  document.getElementById(elId).innerHTML = `<div class="donut-wrap">
+    <svg width="160" height="160" viewBox="0 0 160 160">${circles}</svg>
+    <div class="donut-legend">
+      ${segments.map(seg=>`<div class="li"><span class="dot" style="background:${seg.color}"></span>${escapeHtml(seg.label)} <span class="amt">${moneyShort(seg.value)} (${Math.round(seg.value/total*100)}%)</span></div>`).join("")}
+    </div>
+  </div>`;
+}
+function renderProgressBar(elId, earned, goal, sub){
+  const pct = goal>0 ? (earned/goal*100) : 0;
+  const clamped = Math.min(100, Math.max(0, pct));
+  document.getElementById(elId).innerHTML = `
+    <div class="goal-row">
+      <span><strong>${moneyShort(earned)}</strong> earned</span>
+      <span>${pct>=100?'<span class="pill pill-good">Goal reached 🎉</span>':`${Math.round(pct)}% of ${moneyShort(goal)}`}</span>
+    </div>
+    <div class="progress-wrap"><div class="progress-bar ${pct>=100?'over':''}" style="width:${clamped}%;"></div></div>`;
+}
+
+/* ---------------- RENDER: OVERVIEW ---------------- */
+function filteredRows(view){
+  const all = RETURNS.map(derive);
+  if(view==="all") return all;
+  return all.filter(r=>r.preparerId===view);
+}
+function renderOverview(){
+  const rows = filteredRows(currentView);
+  const totalFees = rows.reduce((s,r)=>s+r.fee,0);
+  const yourEarnings = rows.reduce((s,r)=>s+r.yourShare,0);
+  const companyEarnings = rows.reduce((s,r)=>s+r.companyShare,0);
+  const outstanding = rows.reduce((s,r)=>s+r.outstanding,0);
+  const referralOwed = rows.filter(r=>r.refEligible && !r.refPaid).reduce((s)=>s+SETTINGS.referralAmount,0);
+
+  const earnerLabel = currentView==="all" ? "Preparer Earnings (combined)" : "Preparer Earnings";
+  const cards = [
+    {label:"Total Returns Logged", value: rows.length, cls:""},
+    {label:earnerLabel, value: money(yourEarnings), cls:"good"},
+    {label:"Company Earnings", value: money(companyEarnings), cls:""},
+    {label:"Total Preparer Fees", value: money(totalFees), cls:""},
+    {label:"Outstanding Fees", value: money(outstanding), cls: outstanding>0?"alert":""},
+    {label:"Referral Still Owed", value: money(referralOwed), cls: referralOwed>0?"alert":""},
+  ];
+  document.getElementById("kpi-grid").innerHTML = cards.map(c=>`
+    <div class="kpi-card">
+      <div class="kpi-label">${escapeHtml(c.label)}</div>
+      <div class="kpi-value ${c.cls}">${c.value}</div>
+    </div>`).join("");
+
+  // goal progress
+  const goalCard = document.getElementById("goal-card");
+  if(SETTINGS.annualGoal>0){
+    goalCard.style.display = "block";
+    const ytd = rows.filter(r=>r.payYear===thisCalendarYear).reduce((s,r)=>s+r.yourShare,0);
+    document.getElementById("goal-sub").textContent = `${thisCalendarYear} earnings toward your goal${currentView==="all"?" (company-wide)":""}`;
+    renderProgressBar("goal-body", ytd, SETTINGS.annualGoal);
+  } else {
+    goalCard.style.display = "none";
+  }
+
+  // monthly chart (current calendar year only)
+  const monthlyTotals = Array(12).fill(0);
+  rows.forEach(r=>{ if(r.collected && r.month && r.payYear===thisCalendarYear) monthlyTotals[r.month-1]+=r.yourShare; });
+  document.getElementById("chartMonthly-sub").textContent = `Deposits received, ${thisCalendarYear}`;
+  renderBarChart("chartMonthly", MONTHS, monthlyTotals);
+  renderDonut("chartSplit", [
+    {label:"Preparer Earnings", value:yourEarnings, color:"#219A8A"},
+    {label:"Company Earnings", value:companyEarnings, color:"#1A0E3E"},
+  ]);
+
+  // recent returns mini table
+  const recent = [...rows].sort((a,b)=> (b.payYear||0)-(a.payYear||0) || (b.month||0)-(a.month||0)).slice(0,5);
+  document.getElementById("recent-table").innerHTML = buildTable(recent, {compact:true});
+
+  renderSidebar();
+}
+
+function renderSidebar(){
+  const me = preparerFor(SETTINGS.currentPreparerId).name;
+  const company = SETTINGS.companyName ? escapeHtml(SETTINGS.companyName) : "No company set";
+  document.getElementById("sidebar-foot").innerHTML = `${company}<br>Signed in as ${escapeHtml(me)}`;
+}
+
+/* ---------------- RENDER: CLIENT JOB LOG ---------------- */
+function buildTable(rows, opts){
+  opts = opts || {};
+  const compact = !!opts.compact, actions = !!opts.actions;
+  if(rows.length===0) return `<div class="empty">No returns match yet.</div>`;
+  return `<table>
+    <thead><tr>
+      <th>Return ID</th><th>Client</th><th>Preparer</th><th>Year</th><th>Service</th>
+      <th class="num">Federal</th><th class="num">Fee</th><th class="num">Earnings</th>
+      ${compact?"":'<th class="num">Net Refund</th><th>Status</th>'}
+      ${actions?'<th></th>':''}
+    </tr></thead>
+    <tbody>
+      ${rows.map(r=>`<tr>
+        <td>${escapeHtml(r.id)}</td><td>${escapeHtml(r.client)}</td><td>${escapeHtml(r.preparerName)}</td><td>${r.year}</td><td>${escapeHtml(r.service)}</td>
+        <td class="num">${moneyShort(r.federal)}</td><td class="num">${moneyShort(r.fee)}</td><td class="num">${moneyShort(r.yourShare)}</td>
+        ${compact?"":`<td class="num">${moneyShort(r.netRefund)}</td><td>${r.collected?'<span class="pill pill-good">Collected</span>':'<span class="pill pill-bad">Outstanding</span>'}</td>`}
+        ${actions?`<td><div class="row-actions"><button class="icon-btn" onclick="openEdit(${r._uid})">Edit</button><button class="icon-btn danger" onclick="deleteReturn(${r._uid})">Delete</button></div></td>`:''}
+      </tr>`).join("")}
+    </tbody>
+  </table>`;
+}
+
+function populateFilters(){
+  const years = [...new Set(RETURNS.map(r=>r.year))].sort();
+  const services = [...new Set(RETURNS.map(r=>r.service))];
+  populateSelectPreserve("filter-year", `<option value="all">All tax years</option>` + years.map(y=>`<option value="${y}">${y}</option>`).join(""));
+  populateSelectPreserve("filter-service", `<option value="all">All services</option>` + services.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join(""));
+  populatePreparerSelects();
+}
+
+function renderLog(){
+  const yr = document.getElementById("filter-year").value;
+  const sv = document.getElementById("filter-service").value;
+  const pr = document.getElementById("filter-preparer").value;
+  const q = document.getElementById("filter-search").value.toLowerCase();
+  let rows = RETURNS.map(derive);
+  if(yr!=="all") rows = rows.filter(r=>String(r.year)===yr);
+  if(sv!=="all") rows = rows.filter(r=>r.service===sv);
+  if(pr!=="all") rows = rows.filter(r=>r.preparerId===pr);
+  if(q) rows = rows.filter(r=> r.client.toLowerCase().includes(q) || r.id.toLowerCase().includes(q));
+  document.getElementById("log-count").textContent = rows.length;
+  document.getElementById("log-table").innerHTML = buildTable(rows, {compact:false, actions:true});
+}
+
+/* ---------------- EDIT / DELETE ---------------- */
+let editingUid = null;
+function initEditMonthOptions(){
+  const el = document.getElementById("e-month");
+  el.innerHTML = `<option value="">—</option>` + MONTHS.map((m,i)=>`<option value="${i+1}">${m}</option>`).join("");
+}
+function openEdit(uid){
+  const r = RETURNS.find(x=>x._uid===uid);
+  if(!r) return;
+  editingUid = uid;
+  document.getElementById("e-id").value = r.id;
+  document.getElementById("e-client").value = r.client;
+  document.getElementById("e-year").value = r.year;
+  document.getElementById("e-service").value = r.service;
+  document.getElementById("e-federal").value = r.federal;
+  document.getElementById("e-fee").value = r.fee;
+  populateSelectPreserve("e-preparer", preparerOptionsHtml(false), r.preparerId);
+  document.getElementById("e-month").value = r.month || "";
+  document.getElementById("e-payyear").value = r.payYear || thisCalendarYear;
+  document.getElementById("e-refpartner").value = r.refPartner || "";
+  document.getElementById("e-collected").checked = !!r.collected;
+  document.getElementById("e-refeligible").checked = !!r.refEligible;
+  document.getElementById("e-refpaid").checked = !!r.refPaid;
+  document.getElementById("editModal").classList.add("open");
+}
+function closeEditModal(){
+  document.getElementById("editModal").classList.remove("open");
+  editingUid = null;
+}
+function saveEdit(){
+  const r = RETURNS.find(x=>x._uid===editingUid);
+  if(!r) return;
+  const id = document.getElementById("e-id").value.trim();
+  const client = document.getElementById("e-client").value.trim();
+  if(!id || !client){ alert("Return ID and Client Name are required."); return; }
+  r.id = id;
+  r.client = client;
+  r.year = parseInt(document.getElementById("e-year").value);
+  r.service = document.getElementById("e-service").value;
+  r.federal = parseFloat(document.getElementById("e-federal").value)||0;
+  r.fee = parseFloat(document.getElementById("e-fee").value)||0;
+  r.preparerId = document.getElementById("e-preparer").value;
+  const monthVal = document.getElementById("e-month").value;
+  r.month = monthVal ? parseInt(monthVal) : null;
+  r.payYear = parseInt(document.getElementById("e-payyear").value) || thisCalendarYear;
+  r.refPartner = document.getElementById("e-refpartner").value.trim();
+  r.collected = document.getElementById("e-collected").checked;
+  r.refEligible = document.getElementById("e-refeligible").checked;
+  r.refPaid = document.getElementById("e-refpaid").checked;
+  closeEditModal();
+  saveData();
+  refreshAll();
+}
+function deleteReturn(uid){
+  if(!confirm("Delete this return? This can't be undone.")) return;
+  RETURNS = RETURNS.filter(r=>r._uid!==uid);
+  saveData();
+  refreshAll();
+}
+
+/* ---------------- RENDER: REFERRALS ---------------- */
+function renderReferrals(){
+  document.getElementById("referral-sub").textContent = `$${SETTINGS.referralAmount||0} per eligible referral. Track who you owe and who's been paid.`;
+  const rows = RETURNS.map(derive).filter(r=>r.refEligible);
+  const byPartner = {};
+  rows.forEach(r=>{
+    const key = r.refPartner || "(unspecified)";
+    byPartner[key] = byPartner[key] || {clients:0, owed:0, paid:0};
+    byPartner[key].clients += 1;
+    byPartner[key].owed += SETTINGS.referralAmount;
+    byPartner[key].paid += r.refPaid ? SETTINGS.referralAmount : 0;
+  });
+  const partners = Object.keys(byPartner);
+  if(partners.length===0){
+    document.getElementById("referral-table").innerHTML = `<div class="empty">No referral-eligible returns yet.</div>`;
+  } else {
+    document.getElementById("referral-table").innerHTML = `<table>
+      <thead><tr><th>Referral Partner</th><th class="num"># Clients</th><th class="num">Total Owed</th><th class="num">Paid</th><th class="num">Still Owed</th></tr></thead>
+      <tbody>
+        ${partners.map(p=>{
+          const d = byPartner[p];
+          const still = d.owed - d.paid;
+          return `<tr><td>${escapeHtml(p)}</td><td class="num">${d.clients}</td><td class="num">${moneyShort(d.owed)}</td><td class="num">${moneyShort(d.paid)}</td>
+            <td class="num">${still>0?`<span class="pill pill-bad">${moneyShort(still)}</span>`:`<span class="pill pill-good">$0</span>`}</td></tr>`;
+        }).join("")}
+      </tbody>
+    </table>`;
+  }
+
+  if(rows.length===0){
+    document.getElementById("referral-detail-table").innerHTML = `<div class="empty">Nothing to show.</div>`;
+    return;
+  }
+  document.getElementById("referral-detail-table").innerHTML = `<table>
+    <thead><tr><th>Return ID</th><th>Client</th><th>Partner</th><th class="num">Amount</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      ${rows.map(r=>`<tr>
+        <td>${escapeHtml(r.id)}</td><td>${escapeHtml(r.client)}</td><td>${escapeHtml(r.refPartner||"(unspecified)")}</td>
+        <td class="num">${moneyShort(SETTINGS.referralAmount)}</td>
+        <td>${r.refPaid?'<span class="pill pill-good">Paid</span>':'<span class="pill pill-wait">Owed</span>'}</td>
+        <td><div class="row-actions"><button class="icon-btn" onclick="toggleReferralPaid(${r._uid})">${r.refPaid?"Mark unpaid":"Mark paid"}</button></div></td>
+      </tr>`).join("")}
+    </tbody>
+  </table>`;
+}
+function toggleReferralPaid(uid){
+  const r = RETURNS.find(x=>x._uid===uid);
+  if(!r) return;
+  r.refPaid = !r.refPaid;
+  saveData();
+  refreshAll();
+}
+
+/* ---------------- RENDER: INCOME SUMMARY ---------------- */
+let incomePeriod = "year";
+document.getElementById("period-toggle").addEventListener("click", e=>{
+  if(e.target.tagName!=="BUTTON") return;
+  incomePeriod = e.target.dataset.period;
+  document.querySelectorAll("#period-toggle button").forEach(b=>b.classList.toggle("active", b===e.target));
+  renderIncome();
+});
+function renderIncome(){
+  const pr = document.getElementById("filter-preparer-income").value;
+  const rows = filteredRows(pr);
+  const range = incomePeriod==="year" ? [0,12] : incomePeriod==="h1" ? [0,6] : [6,12];
+  const months = MONTHS.slice(range[0], range[1]);
+  const monthIdx = months.map((_,i)=>range[0]+i);
+
+  function seriesFor(fn){ return monthIdx.map(mi => rows.filter(r=>r.month===mi+1 && r.payYear===thisCalendarYear).reduce((s,r)=>s+fn(r),0)); }
+  const feeSeries = seriesFor(r=>r.fee);
+  const yourSeries = seriesFor(r=>r.yourShare);
+  const coSeries = seriesFor(r=>r.companyShare);
+  const federalSeries = seriesFor(r=>r.federal);
+
+  const rowsDef = [
+    {label:"Total Preparer Fees", data:feeSeries},
+    {label:"Preparer Earnings", data:yourSeries},
+    {label:"Company Earnings", data:coSeries},
+    {label:"Total Federal Refunds", data:federalSeries},
+  ];
+  const totalRow = (data)=>data.reduce((a,b)=>a+b,0);
+
+  document.getElementById("income-table").innerHTML = `<table>
+    <thead><tr><th>Account</th>${months.map(m=>`<th class="num">${m}</th>`).join("")}<th class="num">Total</th></tr></thead>
+    <tbody>
+      ${rowsDef.map(r=>`<tr><td>${escapeHtml(r.label)}</td>${r.data.map(v=>`<td class="num">${moneyShort(v)}</td>`).join("")}<td class="num"><strong>${moneyShort(totalRow(r.data))}</strong></td></tr>`).join("")}
+    </tbody>
+  </table>`;
+  document.getElementById("income-sub").textContent = `${thisCalendarYear} — ${incomePeriod==="year"?"Full Year":incomePeriod==="h1"?"Jan–Jun":"Jul–Dec"} detail rolling up to the total`;
+}
+
+/* ---------------- RENDER: TRENDS & GOALS ---------------- */
+function renderTrends(){
+  const rows = filteredRows(currentView);
+  const lastYear = thisCalendarYear - 1;
+  const seriesThis = Array(12).fill(0), seriesLast = Array(12).fill(0);
+  rows.forEach(r=>{
+    if(!r.collected || !r.month) return;
+    if(r.payYear===thisCalendarYear) seriesThis[r.month-1]+=r.yourShare;
+    else if(r.payYear===lastYear) seriesLast[r.month-1]+=r.yourShare;
+  });
+  const totalThis = seriesThis.reduce((a,b)=>a+b,0);
+  const totalLast = seriesLast.reduce((a,b)=>a+b,0);
+  const growthPct = totalLast>0 ? ((totalThis-totalLast)/totalLast*100) : (totalThis>0?100:0);
+
+  document.getElementById("trends-kpi-grid").innerHTML = [
+    {label:`${thisCalendarYear} Earnings`, value: money(totalThis), cls:"good"},
+    {label:`${lastYear} Earnings`, value: money(totalLast), cls:""},
+    {label:"Year-over-Year Change", value: `${growthPct>=0?"+":""}${growthPct.toFixed(1)}%`, cls: growthPct<0?"alert":"good"},
+  ].map(c=>`
+    <div class="kpi-card">
+      <div class="kpi-label">${escapeHtml(c.label)}</div>
+      <div class="kpi-value ${c.cls}">${c.value}</div>
+    </div>`).join("");
+
+  const goalCard = document.getElementById("trends-goal-card");
+  if(SETTINGS.annualGoal>0){
+    goalCard.style.display = "block";
+    document.getElementById("trends-goal-sub").textContent = `${thisCalendarYear} earnings toward your goal${currentView==="all"?" (company-wide)":""}`;
+    renderProgressBar("trends-goal-body", totalThis, SETTINGS.annualGoal);
+  } else {
+    goalCard.style.display = "none";
+  }
+
+  renderGroupedBarChart("chartYoY", MONTHS, seriesThis, seriesLast, String(thisCalendarYear), String(lastYear), "#219A8A", "#1A0E3E");
+}
+
+/* ---------------- RENDER: TEAM ---------------- */
+function renderTeam(){
+  const rows = RETURNS.map(derive);
+  const byPrep = {};
+  PREPARERS.forEach(p=>{ byPrep[p.id] = {preparer:p, count:0, fees:0, yourShare:0, companyShare:0}; });
+  rows.forEach(r=>{
+    if(!byPrep[r.preparerId]) byPrep[r.preparerId] = {preparer:{id:r.preparerId, name:r.preparerName}, count:0, fees:0, yourShare:0, companyShare:0};
+    const b = byPrep[r.preparerId];
+    b.count += 1; b.fees += r.fee; b.yourShare += r.yourShare; b.companyShare += r.companyShare;
+  });
+  const list = Object.values(byPrep).sort((a,b)=>b.yourShare-a.yourShare);
+  const totalFees = list.reduce((s,b)=>s+b.fees,0);
+  const totalYour = list.reduce((s,b)=>s+b.yourShare,0);
+  const totalCo = list.reduce((s,b)=>s+b.companyShare,0);
+
+  document.getElementById("team-kpi-grid").innerHTML = [
+    {label:"Preparers", value: PREPARERS.length},
+    {label:"Company Total Fees", value: money(totalFees)},
+    {label:"Combined Preparer Earnings", value: money(totalYour), cls:"good"},
+    {label:"Company Retained", value: money(totalCo)},
+  ].map(c=>`
+    <div class="kpi-card">
+      <div class="kpi-label">${escapeHtml(c.label)}</div>
+      <div class="kpi-value ${c.cls||""}">${c.value}</div>
+    </div>`).join("");
+
+  if(list.length===0){
+    document.getElementById("team-table").innerHTML = `<div class="empty">No preparers yet.</div>`;
+    return;
+  }
+  document.getElementById("team-table").innerHTML = `<table>
+    <thead><tr><th></th><th>Preparer</th><th class="num">Returns</th><th class="num">Split %</th><th class="num">Fees</th><th class="num">Earnings</th><th class="num">Company Share</th></tr></thead>
+    <tbody>
+      ${list.map((b,i)=>{
+        const p = b.preparer;
+        const splitPct = Math.round((p.splitOverride!=null && p.splitOverride!=="" ? Number(p.splitOverride) : SETTINGS.defaultSplit)*100);
+        const isYou = p.id===SETTINGS.currentPreparerId;
+        return `<tr>
+          <td><span class="rank-badge ${i===0?'gold':''}">${i+1}</span></td>
+          <td>${escapeHtml(p.name)}${isYou?'<span class="badge-you">You</span>':''}</td>
+          <td class="num">${b.count}</td>
+          <td class="num">${splitPct}%</td>
+          <td class="num">${moneyShort(b.fees)}</td>
+          <td class="num"><strong>${moneyShort(b.yourShare)}</strong></td>
+          <td class="num">${moneyShort(b.companyShare)}</td>
+        </tr>`;
+      }).join("")}
+    </tbody>
+  </table>`;
+}
+
+/* ---------------- RENDER: SETTINGS ---------------- */
+function renderSettings(){
+  document.getElementById("set-company").value = SETTINGS.companyName || "";
+  document.getElementById("set-split").value = Math.round((SETTINGS.defaultSplit||0)*100);
+  document.getElementById("set-referral").value = SETTINGS.referralAmount || 0;
+  document.getElementById("set-goal").value = SETTINGS.annualGoal || 0;
+  renderPreparerSettings();
+}
+function renderPreparerSettings(){
+  document.getElementById("preparer-list").innerHTML = PREPARERS.map(p=>`
+    <div class="preparer-row">
+      <input type="text" value="${escapeHtml(p.name)}" data-id="${escapeHtml(p.id)}" data-f="name" onchange="updatePreparerField(this)" style="flex:2;">
+      <input type="text" placeholder="Default ${Math.round((SETTINGS.defaultSplit||0)*100)}%" value="${p.splitOverride!=null?Math.round(Number(p.splitOverride)*100):''}" data-id="${escapeHtml(p.id)}" data-f="split" onchange="updatePreparerField(this)" style="flex:1;max-width:140px;">
+      ${p.id===SETTINGS.currentPreparerId?'<span class="badge-you">You</span>':`<button class="icon-btn btn-sm" onclick="setCurrentPreparer('${escapeHtml(p.id)}')">Set as me</button>`}
+      <button class="icon-btn danger btn-sm" onclick="removePreparer('${escapeHtml(p.id)}')">Remove</button>
+    </div>`).join("");
+}
+function updatePreparerField(el){
+  const p = PREPARERS.find(x=>x.id===el.dataset.id);
+  if(!p) return;
+  if(el.dataset.f==="name"){
+    const v = el.value.trim();
+    p.name = v || p.name;
+  } else if(el.dataset.f==="split"){
+    const v = el.value.trim();
+    p.splitOverride = v==="" ? null : Math.min(1, Math.max(0, parseFloat(v)/100));
+  }
+  saveData();
+  refreshAll();
+  renderPreparerSettings();
+}
+function addPreparer(){
+  const id = "p_" + Date.now();
+  PREPARERS.push({id, name:"New Preparer", splitOverride:null});
+  saveData();
+  refreshAll();
+  renderSettings();
+}
+function removePreparer(id){
+  if(PREPARERS.length<=1){ alert("You need at least one preparer."); return; }
+  if(!confirm("Remove this preparer? Their existing returns will be reassigned to the first remaining preparer.")) return;
+  PREPARERS = PREPARERS.filter(p=>p.id!==id);
+  const fallback = PREPARERS[0].id;
+  RETURNS.forEach(r=>{ if(r.preparerId===id) r.preparerId = fallback; });
+  if(SETTINGS.currentPreparerId===id) SETTINGS.currentPreparerId = fallback;
+  if(currentView===id){ currentView = fallback; SETTINGS.lastView = fallback; }
+  saveData();
+  refreshAll();
+  renderSettings();
+}
+function setCurrentPreparer(id){
+  SETTINGS.currentPreparerId = id;
+  saveData();
+  refreshAll();
+  renderSettings();
+}
+function saveSettingsForm(){
+  SETTINGS.companyName = document.getElementById("set-company").value.trim();
+  SETTINGS.defaultSplit = Math.min(1, Math.max(0, (parseFloat(document.getElementById("set-split").value)||0)/100));
+  SETTINGS.referralAmount = Math.max(0, parseFloat(document.getElementById("set-referral").value)||0);
+  SETTINGS.annualGoal = Math.max(0, parseFloat(document.getElementById("set-goal").value)||0);
+  saveData();
+  refreshAll();
+}
+
+/* ---------------- IMPORT: CSV + MANUAL ---------------- */
+const dropzone = document.getElementById("dropzone");
+const fileInput = document.getElementById("fileInput");
+let pendingRows = [];
+dropzone.addEventListener("click", ()=>fileInput.click());
+["dragover","dragleave","drop"].forEach(evt=>{
+  dropzone.addEventListener(evt, e=>{
+    e.preventDefault();
+    dropzone.classList.toggle("drag", evt==="dragover");
+  });
+});
+dropzone.addEventListener("drop", e=>{
+  const file = e.dataTransfer.files[0];
+  if(file) handleFile(file);
+});
+fileInput.addEventListener("change", e=>{
+  if(e.target.files[0]) handleFile(e.target.files[0]);
+});
+function handleFile(file){
+  const reader = new FileReader();
+  reader.onload = ()=>parseCSV(reader.result);
+  reader.readAsText(file);
+}
+function parseCSV(text){
+  const lines = text.split(/\r?\n/).filter(l=>l.trim().length);
+  if(lines.length<2){ alert("Couldn't find any data rows in that file."); return; }
+  const preparerId = document.getElementById("import-preparer").value;
+  const rows = lines.slice(1).map(line=>{
+    const cols = line.split(",").map(c=>c.trim().replace(/^"|"$/g,""));
+    return {
+      id: cols[0]||"", client: cols[1]||"", year: parseInt(cols[2])||thisCalendarYear,
+      service: cols[3]||"Schedule C", federal: parseFloat(cols[4])||0, fee: parseFloat(cols[5])||0,
+      preparerId, refPartner:"", refEligible:false, refPaid:false, collected:true,
+      month:new Date().getMonth()+1, payYear:thisCalendarYear
+    };
+  }).filter(r=>r.id);
+  pendingRows = rows;
+  showConfirm(rows);
+}
+function showConfirm(rows){
+  document.getElementById("confirmArea").style.display = "block";
+  document.getElementById("confirmTableWrap").innerHTML = `<table>
+    <thead><tr><th></th><th>Return ID</th><th>Client</th><th>Year</th><th>Service</th><th class="num">Federal</th><th class="num">Fee</th></tr></thead>
+    <tbody>
+      ${rows.map((r,i)=>`<tr>
+        <td><input type="checkbox" class="checkbox" checked data-i="${i}"></td>
+        <td>${escapeHtml(r.id)}</td><td>${escapeHtml(r.client)}</td><td>${r.year}</td><td>${escapeHtml(r.service)}</td>
+        <td class="num">${moneyShort(r.federal)}</td><td class="num">${moneyShort(r.fee)}</td>
+      </tr>`).join("")}
+    </tbody>
+  </table>`;
+  updateImportBtn();
+  document.getElementById("confirmTableWrap").addEventListener("change", updateImportBtn);
+}
+function updateImportBtn(){
+  const n = document.querySelectorAll("#confirmTableWrap input:checked").length;
+  document.getElementById("importBtn").textContent = `Import ${n} selected`;
+}
+function confirmImport(){
+  const checked = [...document.querySelectorAll("#confirmTableWrap input:checked")].map(cb=>parseInt(cb.dataset.i));
+  const toAdd = pendingRows.filter((_,i)=>checked.includes(i));
+  toAdd.forEach(r=>{ r._uid = ++uidCounter; });
+  RETURNS = RETURNS.concat(toAdd);
+  cancelImport();
+  saveData();
+  refreshAll();
+  goTo("log");
+}
+function cancelImport(){
+  pendingRows = [];
+  document.getElementById("confirmArea").style.display = "none";
+  fileInput.value = "";
+}
+function addManual(){
+  const id = document.getElementById("f-id").value.trim();
+  const client = document.getElementById("f-client").value.trim();
+  if(!id || !client){ alert("Return ID and Client Name are required."); return; }
+  RETURNS.push({
+    id, client,
+    year: parseInt(document.getElementById("f-year").value),
+    service: document.getElementById("f-service").value,
+    federal: parseFloat(document.getElementById("f-federal").value)||0,
+    fee: parseFloat(document.getElementById("f-fee").value)||0,
+    preparerId: document.getElementById("import-preparer").value || SETTINGS.currentPreparerId,
+    refPartner: document.getElementById("f-refpartner").value.trim(),
+    refEligible: document.getElementById("f-refeligible").checked,
+    refPaid:false, collected:true, month:new Date().getMonth()+1, payYear:thisCalendarYear,
+    _uid: ++uidCounter
+  });
+  ["f-id","f-client","f-federal","f-fee","f-refpartner"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("f-refeligible").checked=false;
+  saveData();
+  refreshAll();
+  goTo("log");
+}
+
+/* ---------------- EXPORT ---------------- */
+function toCSV(rows, headers, accessors){
+  const lines = [headers.join(",")];
+  rows.forEach(r=>lines.push(accessors.map(fn=>fn(r)).join(",")));
+  return lines.join("\n");
+}
+function download(filename, content, mime){
+  const blob = new Blob([content], {type: mime || "text/csv"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function exportCSV(){
+  const rows = RETURNS.map(derive);
+  const csv = toCSV(rows,
+    ["Return ID","Client","Preparer","Year","Service","Federal","Fee","Preparer Earnings","Company Share","Net Refund","Collected"],
+    [r=>r.id, r=>r.client, r=>r.preparerName, r=>r.year, r=>r.service, r=>r.federal, r=>r.fee, r=>r.yourShare.toFixed(2), r=>r.companyShare.toFixed(2), r=>r.netRefund, r=>r.collected]
+  );
+  download("client_job_log.csv", csv);
+}
+function exportIncomeCSV(){
+  const rows = RETURNS.map(derive);
+  const csv = toCSV(rows,
+    ["Return ID","Preparer","Month","Year","Fee","Preparer Earnings","Company Share","Federal"],
+    [r=>r.id, r=>r.preparerName, r=>r.month||"", r=>r.payYear||"", r=>r.fee, r=>r.yourShare.toFixed(2), r=>r.companyShare.toFixed(2), r=>r.federal]
+  );
+  download("income_summary.csv", csv);
+}
+function exportBackup(){
+  download("prepprofit_backup.json", JSON.stringify({RETURNS, PREPARERS, SETTINGS}, null, 2), "application/json");
+}
+function importBackupFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const data = JSON.parse(reader.result);
+      if(!Array.isArray(data.RETURNS) || !Array.isArray(data.PREPARERS) || !data.SETTINGS) throw new Error("bad shape");
+      RETURNS = data.RETURNS;
+      PREPARERS = data.PREPARERS.length ? data.PREPARERS : [{id:"p1", name:"You", splitOverride:null}];
+      SETTINGS = data.SETTINGS;
+      assignUids();
+      currentView = SETTINGS.lastView || "all";
+      saveData();
+      refreshAll();
+      alert("Backup imported.");
+    }catch(err){
+      alert("Couldn't read that backup file — it doesn't look like a PrepProfit Pro backup.");
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+}
+function resetSampleData(){
+  if(!confirm("Replace current data with the sample demo data? This can't be undone.")) return;
+  seedDefaults(false);
+  saveData();
+  refreshAll();
+}
+function clearAllData(){
+  if(!confirm("Delete all returns, preparers, and settings? This can't be undone.")) return;
+  seedDefaults(true);
+  saveData();
+  refreshAll();
+}
+
+/* ---------------- INIT ---------------- */
+function refreshAll(){
+  populateFilters();
+  renderOverview();
+  renderLog();
+  renderReferrals();
+  renderIncome();
+  renderTrends();
+  renderTeam();
+  renderSettings();
+}
+loadData();
+initEditMonthOptions();
+refreshAll();
+</script>
+</body>
+</html>
