@@ -86,6 +86,8 @@
   .pill-good{background:var(--accent-light);color:var(--accent-dark);}
   .pill-bad{background:var(--red-bg);color:var(--red);}
   .pill-wait{background:#FFF3D6;color:#8A6212;}
+  .pill-info{background:#E7ECFB;color:#33449E;}
+  .pill-neutral{background:#F2F4F9;color:var(--text-muted);}
 
   /* IMPORT PAGE */
   .dropzone{border:2px dashed #C7CEDD;border-radius:16px;padding:50px 20px;text-align:center;background:#FAFBFE;cursor:pointer;transition:border-color .15s, background .15s;}
@@ -151,9 +153,24 @@
   .settings-section .card-sub{margin-bottom:16px;}
   .preparer-row{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;}
   .preparer-row input[type=text]{min-width:0;}
+  .warn-note{font-size:12px;color:var(--text-muted);background:#FFF8E8;border:1px solid #F3E3B5;padding:10px 12px;border-radius:10px;margin-top:14px;line-height:1.5;}
+  .table-scroll{overflow-x:auto;}
 </style>
 </head>
 <body>
+<div class="modal-overlay" id="lockScreen" style="display:none;z-index:100;">
+  <div class="modal" style="max-width:360px;text-align:center;">
+    <div class="brand-badge" style="margin:0 auto 16px;"></div>
+    <h3>PrepProfit Pro is locked</h3>
+    <p class="modal-sub">Enter the PIN to open this dashboard.</p>
+    <input type="password" id="lock-pin" placeholder="PIN" style="width:100%;text-align:center;font-size:18px;letter-spacing:4px;" autocomplete="off">
+    <div id="lock-error" style="color:var(--red);font-size:12.5px;margin-top:8px;min-height:16px;"></div>
+    <div class="actions" style="margin-top:14px;justify-content:center;">
+      <button class="btn btn-primary" onclick="tryUnlock()" style="width:100%;">Unlock</button>
+    </div>
+    <p class="kpi-note" style="margin-top:16px;">This PIN only hides the screen — data is still stored in this browser, unencrypted.</p>
+  </div>
+</div>
 <div class="app">
 
   <!-- SIDEBAR -->
@@ -292,6 +309,13 @@
           <div class="field" style="display:flex;align-items:flex-end;padding-bottom:2px;">
             <label class="check-row" style="margin-bottom:0;"><input type="checkbox" class="checkbox" id="f-refeligible"> Referral eligible</label>
           </div>
+          <div class="field"><label>E-file Status</label>
+            <select id="f-efile"><option>Not Started</option><option>Submitted</option><option>Accepted</option><option>Rejected</option></select>
+          </div>
+          <div class="field"><label>Bank Fee ($, if applicable)</label><input type="text" id="f-bankfee" placeholder="0"></div>
+          <div class="field" style="display:flex;align-items:flex-end;padding-bottom:2px;">
+            <label class="check-row" style="margin-bottom:0;"><input type="checkbox" class="checkbox" id="f-bankproduct"> Paid via bank product</label>
+          </div>
         </div>
         <div class="actions" style="margin-top:18px;">
           <button class="btn btn-primary" onclick="addManual()">Add return</button>
@@ -316,9 +340,10 @@
           <select id="filter-year" onchange="renderLog()"><option value="all">All tax years</option></select>
           <select id="filter-service" onchange="renderLog()"><option value="all">All services</option></select>
           <select id="filter-preparer" onchange="renderLog()"><option value="all">All preparers</option></select>
+          <select id="filter-efile" onchange="renderLog()"><option value="all">All e-file statuses</option></select>
           <input type="search" id="filter-search" placeholder="Search client or return ID…" oninput="renderLog()">
         </div>
-        <div id="log-table"></div>
+        <div class="table-scroll" id="log-table"></div>
       </div>
     </section>
 
@@ -339,6 +364,11 @@
         <div class="card-title">Referral Detail</div>
         <div class="card-sub">Every referral-eligible return — toggle paid status per client</div>
         <div id="referral-detail-table"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">1099 Watch</div>
+        <div class="card-sub" id="nec-sub">Referral partners paid $600+ in a calendar year need a 1099-NEC</div>
+        <div id="nec-table"></div>
       </div>
     </section>
 
@@ -408,6 +438,11 @@
         </div>
       </div>
       <div class="kpi-grid" id="team-kpi-grid"></div>
+      <div class="card" id="office-card" style="display:none;">
+        <div class="card-title">By Office</div>
+        <div class="card-sub">Rolled up by office/location</div>
+        <div id="office-table"></div>
+      </div>
       <div class="card">
         <div class="card-title">Leaderboard</div>
         <div class="card-sub">Ranked by preparer earnings</div>
@@ -439,12 +474,34 @@
       </div>
 
       <div class="card settings-section">
+        <h4>Offices</h4>
+        <p class="card-sub">If you work under more than one office or location, add them here and assign preparers below.</p>
+        <div id="office-list"></div>
+        <div class="actions" style="margin-top:6px;">
+          <button class="btn" onclick="addOffice()">+ Add office</button>
+        </div>
+      </div>
+
+      <div class="card settings-section">
         <h4>Preparers</h4>
         <p class="card-sub">Add every preparer working under this company. Leave split blank to use the default above.</p>
         <div id="preparer-list"></div>
         <div class="actions" style="margin-top:6px;">
           <button class="btn" onclick="addPreparer()">+ Add preparer</button>
         </div>
+      </div>
+
+      <div class="card settings-section">
+        <h4>Security</h4>
+        <p class="card-sub">Add a PIN screen so this dashboard isn't left open on a shared computer.</p>
+        <label class="check-row"><input type="checkbox" class="checkbox" id="set-pin-enabled" onchange="togglePinField()"> Require a PIN to open this dashboard</label>
+        <div class="field-grid" style="margin-top:14px;">
+          <div class="field" id="set-pin-field"><label>PIN</label><input type="password" id="set-pin" placeholder="Enter a new PIN" autocomplete="off"></div>
+        </div>
+        <div class="actions" style="margin-top:16px;">
+          <button class="btn btn-primary" onclick="saveSecurityForm()">Save security settings</button>
+        </div>
+        <p class="warn-note">This is a soft screen lock, not encryption — anyone with direct access to this browser's storage can still read the data. Forgot your PIN? Clearing this site's browser data resets it (and everything else in Settings).</p>
       </div>
 
       <div class="card settings-section">
@@ -479,11 +536,23 @@
       <div class="field"><label>Deposit Month</label><select id="e-month"></select></div>
       <div class="field"><label>Deposit Calendar Year</label><input type="text" id="e-payyear"></div>
       <div class="field"><label>Referral Partner</label><input type="text" id="e-refpartner" placeholder="optional"></div>
+      <div class="field"><label>E-file Status</label>
+        <select id="e-efile"><option>Not Started</option><option>Submitted</option><option>Accepted</option><option>Rejected</option></select>
+      </div>
+      <div class="field"><label>Bank Fee ($, if applicable)</label><input type="text" id="e-bankfee"></div>
     </div>
     <div class="actions" style="margin-top:16px;gap:20px;">
       <label class="check-row"><input type="checkbox" class="checkbox" id="e-collected"> Fee collected</label>
       <label class="check-row"><input type="checkbox" class="checkbox" id="e-refeligible"> Referral eligible</label>
       <label class="check-row"><input type="checkbox" class="checkbox" id="e-refpaid"> Referral paid</label>
+      <label class="check-row"><input type="checkbox" class="checkbox" id="e-bankproduct"> Paid via bank product</label>
+    </div>
+    <div class="divider-label">Document checklist</div>
+    <div class="actions" style="gap:20px;">
+      <label class="check-row"><input type="checkbox" class="checkbox" id="e-doc-w2"> W-2/1099 received</label>
+      <label class="check-row"><input type="checkbox" class="checkbox" id="e-doc-id"> ID verified</label>
+      <label class="check-row"><input type="checkbox" class="checkbox" id="e-doc-signature"> Signature obtained</label>
+      <label class="check-row"><input type="checkbox" class="checkbox" id="e-doc-priorreturn"> Prior return on file</label>
     </div>
     <div class="actions" style="margin-top:20px;justify-content:flex-end;">
       <button class="btn" onclick="closeEditModal()">Cancel</button>
@@ -500,29 +569,56 @@ const money = n => "$" + (n||0).toLocaleString(undefined,{minimumFractionDigits:
 const moneyShort = n => "$" + Math.round(n||0).toLocaleString();
 const escapeHtml = s => String(s??"").replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const thisCalendarYear = new Date().getFullYear();
+const EFILE_STATUSES = ["Not Started","Submitted","Accepted","Rejected"];
+const CHECKLIST_ITEMS = [
+  {key:"w2", label:"W-2/1099 received"},
+  {key:"id", label:"ID verified"},
+  {key:"signature", label:"Signature obtained"},
+  {key:"priorReturn", label:"Prior return on file"},
+];
+const NEC_THRESHOLD = 600;
 
 /* ---------------- DATA MODEL ---------------- */
 let RETURNS = [];
 let PREPARERS = [];
+let OFFICES = [];
 let SETTINGS = {};
 let uidCounter = 0;
 let currentView = "all"; // "all" or a preparer id — drives Overview & Trends
 
+function emptyChecklist(){
+  const c = {};
+  CHECKLIST_ITEMS.forEach(item=>{ c[item.key] = false; });
+  return c;
+}
+function normalizeReturn(r){
+  if(r.efileStatus===undefined) r.efileStatus = "Not Started";
+  if(r.bankProduct===undefined) r.bankProduct = false;
+  if(r.bankFee===undefined) r.bankFee = 0;
+  if(!r.checklist) r.checklist = emptyChecklist();
+  CHECKLIST_ITEMS.forEach(item=>{ if(r.checklist[item.key]===undefined) r.checklist[item.key] = false; });
+  return r;
+}
+
 function sampleData(){
+  const offices = [
+    {id:"o1", name:"Main Office"},
+    {id:"o2", name:"Downtown Branch"},
+  ];
   const preparers = [
-    {id:"p1", name:"You", splitOverride:null},
-    {id:"p2", name:"M. Alvarez", splitOverride:null},
-    {id:"p3", name:"D. Brooks", splitOverride:0.65},
+    {id:"p1", name:"You", splitOverride:null, officeId:"o1"},
+    {id:"p2", name:"M. Alvarez", splitOverride:null, officeId:"o1"},
+    {id:"p3", name:"D. Brooks", splitOverride:0.65, officeId:"o2"},
   ];
   const returns = [
-    {id:"EXAMPLE-001", client:"E. Cook",   year:2025, service:"Schedule C",       federal:6093, fee:1000, preparerId:"p1", refPartner:"",           refEligible:false, refPaid:false, collected:true,  month:4,  payYear:2025},
-    {id:"Rivera-002",  client:"J. Rivera", year:2025, service:"W-2",              federal:3410, fee:350,  preparerId:"p1", refPartner:"M. Alvarez", refEligible:true,  refPaid:true,  collected:true,  month:2,  payYear:2025},
-    {id:"Chen-003",    client:"L. Chen",   year:2026, service:"Schedule C",       federal:8120, fee:1200, preparerId:"p2", refPartner:"",           refEligible:false, refPaid:false, collected:true,  month:3,  payYear:2026},
-    {id:"Patel-004",   client:"R. Patel",  year:2025, service:"Amendment",        federal:1875, fee:450,  preparerId:"p1", refPartner:"D. Brooks",  refEligible:true,  refPaid:false, collected:true,  month:5,  payYear:2025},
-    {id:"Osei-005",    client:"K. Osei",   year:2026, service:"Multiple Filings", federal:5530, fee:980,  preparerId:"p3", refPartner:"",           refEligible:false, refPaid:false, collected:false, month:null, payYear:2026},
-    {id:"Nguyen-006",  client:"T. Nguyen", year:2026, service:"Schedule C",       federal:4275, fee:700,  preparerId:"p2", refPartner:"",           refEligible:false, refPaid:false, collected:true,  month:6,  payYear:2026},
-    {id:"Ward-007",    client:"S. Ward",   year:2025, service:"W-2",              federal:2890, fee:300,  preparerId:"p1", refPartner:"",           refEligible:false, refPaid:false, collected:true,  month:3,  payYear:2025},
-    {id:"Diaz-008",    client:"F. Diaz",   year:2026, service:"Schedule C",       federal:7200, fee:1100, preparerId:"p1", refPartner:"M. Alvarez", refEligible:true,  refPaid:false, collected:true,  month:2,  payYear:2026},
+    {id:"EXAMPLE-001", client:"E. Cook",   year:2025, service:"Schedule C",       federal:6093, fee:1000, preparerId:"p1", refPartner:"",           refEligible:false, refPaid:false, collected:true,  month:4,  payYear:2025, efileStatus:"Accepted",    bankProduct:true,  bankFee:65, checklist:{w2:true, id:true, signature:true, priorReturn:true}},
+    {id:"Rivera-002",  client:"J. Rivera", year:2025, service:"W-2",              federal:3410, fee:350,  preparerId:"p1", refPartner:"M. Alvarez", refEligible:true,  refPaid:true,  collected:true,  month:2,  payYear:2025, efileStatus:"Accepted",    bankProduct:false, bankFee:0,  checklist:{w2:true, id:true, signature:true, priorReturn:false}},
+    {id:"Chen-003",    client:"L. Chen",   year:2026, service:"Schedule C",       federal:8120, fee:1200, preparerId:"p2", refPartner:"",           refEligible:false, refPaid:false, collected:true,  month:3,  payYear:2026, efileStatus:"Submitted",   bankProduct:true,  bankFee:75, checklist:{w2:true, id:true, signature:false, priorReturn:false}},
+    {id:"Patel-004",   client:"R. Patel",  year:2025, service:"Amendment",        federal:1875, fee:450,  preparerId:"p1", refPartner:"D. Brooks",  refEligible:true,  refPaid:false, collected:true,  month:5,  payYear:2025, efileStatus:"Rejected",    bankProduct:false, bankFee:0,  checklist:{w2:true, id:false, signature:false, priorReturn:true}},
+    {id:"Osei-005",    client:"K. Osei",   year:2026, service:"Multiple Filings", federal:5530, fee:980,  preparerId:"p3", refPartner:"",           refEligible:false, refPaid:false, collected:false, month:null, payYear:2026, efileStatus:"Not Started", bankProduct:false, bankFee:0,  checklist:emptyChecklist()},
+    {id:"Nguyen-006",  client:"T. Nguyen", year:2026, service:"Schedule C",       federal:4275, fee:700,  preparerId:"p2", refPartner:"",           refEligible:false, refPaid:false, collected:true,  month:6,  payYear:2026, efileStatus:"Accepted",    bankProduct:false, bankFee:0,  checklist:{w2:true, id:true, signature:true, priorReturn:true}},
+    {id:"Ward-007",    client:"S. Ward",   year:2025, service:"W-2",              federal:2890, fee:300,  preparerId:"p1", refPartner:"",           refEligible:false, refPaid:false, collected:true,  month:3,  payYear:2025, efileStatus:"Accepted",    bankProduct:false, bankFee:0,  checklist:{w2:true, id:true, signature:true, priorReturn:true}},
+    {id:"Diaz-008",    client:"F. Diaz",   year:2026, service:"Schedule C",       federal:7200, fee:1100, preparerId:"p1", refPartner:"M. Alvarez", refEligible:true,  refPaid:false, collected:true,  month:2,  payYear:2026, efileStatus:"Submitted",   bankProduct:true,  bankFee:70, checklist:{w2:true, id:true, signature:true, priorReturn:false}},
   ];
   const settings = {
     companyName:"Summit Tax Group",
@@ -531,17 +627,21 @@ function sampleData(){
     annualGoal:20000,
     currentPreparerId:"p1",
     lastView:"p1",
+    pinEnabled:false,
+    pin:"",
   };
-  return {returns, preparers, settings};
+  return {returns, preparers, offices, settings};
 }
 
 function seedDefaults(blank){
   if(blank){
-    PREPARERS = [{id:"p1", name:"You", splitOverride:null}];
+    OFFICES = [{id:"o1", name:"Main Office"}];
+    PREPARERS = [{id:"p1", name:"You", splitOverride:null, officeId:"o1"}];
     RETURNS = [];
-    SETTINGS = {companyName:"", defaultSplit:0.70, referralAmount:100, annualGoal:0, currentPreparerId:"p1", lastView:"p1"};
+    SETTINGS = {companyName:"", defaultSplit:0.70, referralAmount:100, annualGoal:0, currentPreparerId:"p1", lastView:"p1", pinEnabled:false, pin:""};
   } else {
     const d = sampleData();
+    OFFICES = d.offices;
     PREPARERS = d.preparers;
     RETURNS = d.returns;
     SETTINGS = d.settings;
@@ -552,7 +652,7 @@ function seedDefaults(blank){
 
 function assignUids(){
   uidCounter = 0;
-  RETURNS.forEach(r=>{ r._uid = ++uidCounter; });
+  RETURNS.forEach(r=>{ r._uid = ++uidCounter; normalizeReturn(r); });
 }
 
 function loadData(){
@@ -563,10 +663,17 @@ function loadData(){
     if(!parsed || !Array.isArray(parsed.RETURNS) || !Array.isArray(parsed.PREPARERS) || !parsed.SETTINGS) throw new Error("bad shape");
     RETURNS = parsed.RETURNS;
     PREPARERS = parsed.PREPARERS;
+    OFFICES = Array.isArray(parsed.OFFICES) && parsed.OFFICES.length ? parsed.OFFICES : [{id:"o1", name:"Main Office"}];
     SETTINGS = parsed.SETTINGS;
-    if(PREPARERS.length===0) PREPARERS = [{id:"p1", name:"You", splitOverride:null}];
+    if(SETTINGS.pinEnabled===undefined) SETTINGS.pinEnabled = false;
+    if(SETTINGS.pin===undefined) SETTINGS.pin = "";
+    if(PREPARERS.length===0) PREPARERS = [{id:"p1", name:"You", splitOverride:null, officeId:OFFICES[0].id}];
+    PREPARERS.forEach(p=>{ if(!p.officeId || !OFFICES.some(o=>o.id===p.officeId)) p.officeId = OFFICES[0].id; });
     uidCounter = 0;
-    RETURNS.forEach(r=>{ if(!r._uid){ r._uid = ++uidCounter; } else { uidCounter = Math.max(uidCounter, r._uid); } });
+    RETURNS.forEach(r=>{
+      if(!r._uid){ r._uid = ++uidCounter; } else { uidCounter = Math.max(uidCounter, r._uid); }
+      normalizeReturn(r);
+    });
     currentView = SETTINGS.lastView || "all";
   }catch(err){
     seedDefaults(false);
@@ -574,11 +681,14 @@ function loadData(){
   }
 }
 function saveData(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({RETURNS, PREPARERS, SETTINGS}));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({RETURNS, PREPARERS, OFFICES, SETTINGS}));
 }
 
 function preparerFor(id){
-  return PREPARERS.find(p=>p.id===id) || {id:id||"unknown", name:"Unassigned", splitOverride:null};
+  return PREPARERS.find(p=>p.id===id) || {id:id||"unknown", name:"Unassigned", splitOverride:null, officeId:OFFICES[0] ? OFFICES[0].id : ""};
+}
+function officeFor(id){
+  return OFFICES.find(o=>o.id===id) || {id:id||"unknown", name:"Unassigned"};
 }
 function splitFor(r){
   const p = preparerFor(r.preparerId);
@@ -588,14 +698,23 @@ function splitFor(r){
 }
 function derive(r){
   const split = splitFor(r);
+  const preparer = preparerFor(r.preparerId);
+  const bankFeeAmt = r.bankProduct ? (r.bankFee||0) : 0;
+  const netRefund = r.federal - r.fee;
+  const docsDone = CHECKLIST_ITEMS.filter(item=>r.checklist && r.checklist[item.key]).length;
   return {
     ...r,
-    preparerName: preparerFor(r.preparerId).name,
+    preparerName: preparer.name,
+    officeName: officeFor(preparer.officeId).name,
     split,
     yourShare: r.fee*split,
     companyShare: r.fee*(1-split),
     referralPayout: r.refEligible ? SETTINGS.referralAmount : 0,
-    netRefund: r.federal - r.fee,
+    netRefund,
+    netToClient: netRefund - bankFeeAmt,
+    bankFeeAmt,
+    docsDone,
+    docsTotal: CHECKLIST_ITEMS.length,
     outstanding: !r.collected ? r.fee : 0,
   };
 }
@@ -627,6 +746,10 @@ function populatePreparerSelects(){
   populateSelectPreserve("import-preparer", preparerOptionsHtml(false), SETTINGS.currentPreparerId);
   populateSelectPreserve("overview-view", preparerOptionsHtml(true, "All Preparers (Company View)"), currentView);
   populateSelectPreserve("trends-view", preparerOptionsHtml(true, "All Preparers (Company View)"), currentView);
+}
+function efilePillHtml(status){
+  const cls = status==="Accepted" ? "pill-good" : status==="Rejected" ? "pill-bad" : status==="Submitted" ? "pill-info" : "pill-neutral";
+  return `<span class="pill ${cls}">${escapeHtml(status)}</span>`;
 }
 function setView(v){
   currentView = v;
@@ -714,6 +837,7 @@ function renderOverview(){
   const companyEarnings = rows.reduce((s,r)=>s+r.companyShare,0);
   const outstanding = rows.reduce((s,r)=>s+r.outstanding,0);
   const referralOwed = rows.filter(r=>r.refEligible && !r.refPaid).reduce((s)=>s+SETTINGS.referralAmount,0);
+  const rejectedCount = rows.filter(r=>r.efileStatus==="Rejected").length;
 
   const earnerLabel = currentView==="all" ? "Preparer Earnings (combined)" : "Preparer Earnings";
   const cards = [
@@ -723,6 +847,7 @@ function renderOverview(){
     {label:"Total Preparer Fees", value: money(totalFees), cls:""},
     {label:"Outstanding Fees", value: money(outstanding), cls: outstanding>0?"alert":""},
     {label:"Referral Still Owed", value: money(referralOwed), cls: referralOwed>0?"alert":""},
+    {label:"E-file Rejected", value: rejectedCount, cls: rejectedCount>0?"alert":""},
   ];
   document.getElementById("kpi-grid").innerHTML = cards.map(c=>`
     <div class="kpi-card">
@@ -759,9 +884,10 @@ function renderOverview(){
 }
 
 function renderSidebar(){
-  const me = preparerFor(SETTINGS.currentPreparerId).name;
+  const preparer = preparerFor(SETTINGS.currentPreparerId);
+  const office = officeFor(preparer.officeId).name;
   const company = SETTINGS.companyName ? escapeHtml(SETTINGS.companyName) : "No company set";
-  document.getElementById("sidebar-foot").innerHTML = `${company}<br>Signed in as ${escapeHtml(me)}`;
+  document.getElementById("sidebar-foot").innerHTML = `${company}${OFFICES.length>1?` · ${escapeHtml(office)}`:""}<br>Signed in as ${escapeHtml(preparer.name)}`;
 }
 
 /* ---------------- RENDER: CLIENT JOB LOG ---------------- */
@@ -773,14 +899,14 @@ function buildTable(rows, opts){
     <thead><tr>
       <th>Return ID</th><th>Client</th><th>Preparer</th><th>Year</th><th>Service</th>
       <th class="num">Federal</th><th class="num">Fee</th><th class="num">Earnings</th>
-      ${compact?"":'<th class="num">Net Refund</th><th>Status</th>'}
+      ${compact?"":'<th class="num">Bank Fee</th><th class="num">Net to Client</th><th>E-file</th><th>Docs</th><th>Status</th>'}
       ${actions?'<th></th>':''}
     </tr></thead>
     <tbody>
       ${rows.map(r=>`<tr>
         <td>${escapeHtml(r.id)}</td><td>${escapeHtml(r.client)}</td><td>${escapeHtml(r.preparerName)}</td><td>${r.year}</td><td>${escapeHtml(r.service)}</td>
         <td class="num">${moneyShort(r.federal)}</td><td class="num">${moneyShort(r.fee)}</td><td class="num">${moneyShort(r.yourShare)}</td>
-        ${compact?"":`<td class="num">${moneyShort(r.netRefund)}</td><td>${r.collected?'<span class="pill pill-good">Collected</span>':'<span class="pill pill-bad">Outstanding</span>'}</td>`}
+        ${compact?"":`<td class="num">${r.bankProduct?moneyShort(r.bankFeeAmt):"—"}</td><td class="num">${moneyShort(r.netToClient)}</td><td>${efilePillHtml(r.efileStatus)}</td><td><span class="pill ${r.docsDone===r.docsTotal?'pill-good':'pill-wait'}">${r.docsDone}/${r.docsTotal}</span></td><td>${r.collected?'<span class="pill pill-good">Collected</span>':'<span class="pill pill-bad">Outstanding</span>'}</td>`}
         ${actions?`<td><div class="row-actions"><button class="icon-btn" onclick="openEdit(${r._uid})">Edit</button><button class="icon-btn danger" onclick="deleteReturn(${r._uid})">Delete</button></div></td>`:''}
       </tr>`).join("")}
     </tbody>
@@ -792,6 +918,7 @@ function populateFilters(){
   const services = [...new Set(RETURNS.map(r=>r.service))];
   populateSelectPreserve("filter-year", `<option value="all">All tax years</option>` + years.map(y=>`<option value="${y}">${y}</option>`).join(""));
   populateSelectPreserve("filter-service", `<option value="all">All services</option>` + services.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join(""));
+  populateSelectPreserve("filter-efile", `<option value="all">All e-file statuses</option>` + EFILE_STATUSES.map(s=>`<option value="${s}">${s}</option>`).join(""));
   populatePreparerSelects();
 }
 
@@ -799,11 +926,13 @@ function renderLog(){
   const yr = document.getElementById("filter-year").value;
   const sv = document.getElementById("filter-service").value;
   const pr = document.getElementById("filter-preparer").value;
+  const ef = document.getElementById("filter-efile").value;
   const q = document.getElementById("filter-search").value.toLowerCase();
   let rows = RETURNS.map(derive);
   if(yr!=="all") rows = rows.filter(r=>String(r.year)===yr);
   if(sv!=="all") rows = rows.filter(r=>r.service===sv);
   if(pr!=="all") rows = rows.filter(r=>r.preparerId===pr);
+  if(ef!=="all") rows = rows.filter(r=>r.efileStatus===ef);
   if(q) rows = rows.filter(r=> r.client.toLowerCase().includes(q) || r.id.toLowerCase().includes(q));
   document.getElementById("log-count").textContent = rows.length;
   document.getElementById("log-table").innerHTML = buildTable(rows, {compact:false, actions:true});
@@ -832,6 +961,14 @@ function openEdit(uid){
   document.getElementById("e-collected").checked = !!r.collected;
   document.getElementById("e-refeligible").checked = !!r.refEligible;
   document.getElementById("e-refpaid").checked = !!r.refPaid;
+  document.getElementById("e-efile").value = r.efileStatus || "Not Started";
+  document.getElementById("e-bankproduct").checked = !!r.bankProduct;
+  document.getElementById("e-bankfee").value = r.bankFee || 0;
+  const checklist = r.checklist || emptyChecklist();
+  document.getElementById("e-doc-w2").checked = !!checklist.w2;
+  document.getElementById("e-doc-id").checked = !!checklist.id;
+  document.getElementById("e-doc-signature").checked = !!checklist.signature;
+  document.getElementById("e-doc-priorreturn").checked = !!checklist.priorReturn;
   document.getElementById("editModal").classList.add("open");
 }
 function closeEditModal(){
@@ -858,6 +995,15 @@ function saveEdit(){
   r.collected = document.getElementById("e-collected").checked;
   r.refEligible = document.getElementById("e-refeligible").checked;
   r.refPaid = document.getElementById("e-refpaid").checked;
+  r.efileStatus = document.getElementById("e-efile").value;
+  r.bankProduct = document.getElementById("e-bankproduct").checked;
+  r.bankFee = parseFloat(document.getElementById("e-bankfee").value)||0;
+  r.checklist = {
+    w2: document.getElementById("e-doc-w2").checked,
+    id: document.getElementById("e-doc-id").checked,
+    signature: document.getElementById("e-doc-signature").checked,
+    priorReturn: document.getElementById("e-doc-priorreturn").checked,
+  };
   closeEditModal();
   saveData();
   refreshAll();
@@ -900,17 +1046,41 @@ function renderReferrals(){
 
   if(rows.length===0){
     document.getElementById("referral-detail-table").innerHTML = `<div class="empty">Nothing to show.</div>`;
+  } else {
+    document.getElementById("referral-detail-table").innerHTML = `<table>
+      <thead><tr><th>Return ID</th><th>Client</th><th>Partner</th><th class="num">Amount</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        ${rows.map(r=>`<tr>
+          <td>${escapeHtml(r.id)}</td><td>${escapeHtml(r.client)}</td><td>${escapeHtml(r.refPartner||"(unspecified)")}</td>
+          <td class="num">${moneyShort(SETTINGS.referralAmount)}</td>
+          <td>${r.refPaid?'<span class="pill pill-good">Paid</span>':'<span class="pill pill-wait">Owed</span>'}</td>
+          <td><div class="row-actions"><button class="icon-btn" onclick="toggleReferralPaid(${r._uid})">${r.refPaid?"Mark unpaid":"Mark paid"}</button></div></td>
+        </tr>`).join("")}
+      </tbody>
+    </table>`;
+  }
+
+  document.getElementById("nec-sub").textContent = `Referral partners paid $${NEC_THRESHOLD}+ in ${thisCalendarYear} need a 1099-NEC`;
+  const paidThisYear = rows.filter(r=>r.refPaid && r.payYear===thisCalendarYear);
+  const byPartnerNec = {};
+  paidThisYear.forEach(r=>{
+    const key = r.refPartner || "(unspecified)";
+    byPartnerNec[key] = (byPartnerNec[key]||0) + SETTINGS.referralAmount;
+  });
+  const necPartners = Object.keys(byPartnerNec);
+  if(necPartners.length===0){
+    document.getElementById("nec-table").innerHTML = `<div class="empty">No referral payouts recorded for ${thisCalendarYear} yet.</div>`;
     return;
   }
-  document.getElementById("referral-detail-table").innerHTML = `<table>
-    <thead><tr><th>Return ID</th><th>Client</th><th>Partner</th><th class="num">Amount</th><th>Status</th><th></th></tr></thead>
+  document.getElementById("nec-table").innerHTML = `<table>
+    <thead><tr><th>Referral Partner</th><th class="num">Paid in ${thisCalendarYear}</th><th>1099-NEC</th></tr></thead>
     <tbody>
-      ${rows.map(r=>`<tr>
-        <td>${escapeHtml(r.id)}</td><td>${escapeHtml(r.client)}</td><td>${escapeHtml(r.refPartner||"(unspecified)")}</td>
-        <td class="num">${moneyShort(SETTINGS.referralAmount)}</td>
-        <td>${r.refPaid?'<span class="pill pill-good">Paid</span>':'<span class="pill pill-wait">Owed</span>'}</td>
-        <td><div class="row-actions"><button class="icon-btn" onclick="toggleReferralPaid(${r._uid})">${r.refPaid?"Mark unpaid":"Mark paid"}</button></div></td>
-      </tr>`).join("")}
+      ${necPartners.sort((a,b)=>byPartnerNec[b]-byPartnerNec[a]).map(p=>{
+        const total = byPartnerNec[p];
+        const required = total>=NEC_THRESHOLD;
+        return `<tr><td>${escapeHtml(p)}</td><td class="num">${moneyShort(total)}</td>
+          <td>${required?'<span class="pill pill-bad">Required</span>':`<span class="pill pill-neutral">Not yet ($${NEC_THRESHOLD-total} to go)</span>`}</td></tr>`;
+      }).join("")}
     </tbody>
   </table>`;
 }
@@ -1022,12 +1192,41 @@ function renderTeam(){
       <div class="kpi-value ${c.cls||""}">${c.value}</div>
     </div>`).join("");
 
+  const officeCard = document.getElementById("office-card");
+  if(OFFICES.length>1){
+    officeCard.style.display = "block";
+    const byOffice = {};
+    OFFICES.forEach(o=>{ byOffice[o.id] = {office:o, count:0, fees:0, yourShare:0, companyShare:0}; });
+    list.forEach(b=>{
+      const officeId = b.preparer.officeId || OFFICES[0].id;
+      if(!byOffice[officeId]) byOffice[officeId] = {office:officeFor(officeId), count:0, fees:0, yourShare:0, companyShare:0};
+      byOffice[officeId].count += b.count;
+      byOffice[officeId].fees += b.fees;
+      byOffice[officeId].yourShare += b.yourShare;
+      byOffice[officeId].companyShare += b.companyShare;
+    });
+    document.getElementById("office-table").innerHTML = `<table>
+      <thead><tr><th>Office</th><th class="num">Returns</th><th class="num">Fees</th><th class="num">Preparer Earnings</th><th class="num">Company Share</th></tr></thead>
+      <tbody>
+        ${Object.values(byOffice).sort((a,b)=>b.yourShare-a.yourShare).map(o=>`<tr>
+          <td>${escapeHtml(o.office.name)}</td>
+          <td class="num">${o.count}</td>
+          <td class="num">${moneyShort(o.fees)}</td>
+          <td class="num"><strong>${moneyShort(o.yourShare)}</strong></td>
+          <td class="num">${moneyShort(o.companyShare)}</td>
+        </tr>`).join("")}
+      </tbody>
+    </table>`;
+  } else {
+    officeCard.style.display = "none";
+  }
+
   if(list.length===0){
     document.getElementById("team-table").innerHTML = `<div class="empty">No preparers yet.</div>`;
     return;
   }
   document.getElementById("team-table").innerHTML = `<table>
-    <thead><tr><th></th><th>Preparer</th><th class="num">Returns</th><th class="num">Split %</th><th class="num">Fees</th><th class="num">Earnings</th><th class="num">Company Share</th></tr></thead>
+    <thead><tr><th></th><th>Preparer</th>${OFFICES.length>1?'<th>Office</th>':''}<th class="num">Returns</th><th class="num">Split %</th><th class="num">Fees</th><th class="num">Earnings</th><th class="num">Company Share</th></tr></thead>
     <tbody>
       ${list.map((b,i)=>{
         const p = b.preparer;
@@ -1036,6 +1235,7 @@ function renderTeam(){
         return `<tr>
           <td><span class="rank-badge ${i===0?'gold':''}">${i+1}</span></td>
           <td>${escapeHtml(p.name)}${isYou?'<span class="badge-you">You</span>':''}</td>
+          ${OFFICES.length>1?`<td>${escapeHtml(officeFor(p.officeId).name)}</td>`:''}
           <td class="num">${b.count}</td>
           <td class="num">${splitPct}%</td>
           <td class="num">${moneyShort(b.fees)}</td>
@@ -1053,12 +1253,51 @@ function renderSettings(){
   document.getElementById("set-split").value = Math.round((SETTINGS.defaultSplit||0)*100);
   document.getElementById("set-referral").value = SETTINGS.referralAmount || 0;
   document.getElementById("set-goal").value = SETTINGS.annualGoal || 0;
+  renderOfficeSettings();
   renderPreparerSettings();
+  renderSecuritySettings();
+}
+function officeOptionsHtml(selectedId){
+  return OFFICES.map(o=>`<option value="${escapeHtml(o.id)}" ${o.id===selectedId?"selected":""}>${escapeHtml(o.name)}</option>`).join("");
+}
+function renderOfficeSettings(){
+  document.getElementById("office-list").innerHTML = OFFICES.map(o=>`
+    <div class="preparer-row">
+      <input type="text" value="${escapeHtml(o.name)}" data-id="${escapeHtml(o.id)}" onchange="updateOfficeField(this)" style="flex:2;">
+      <button class="icon-btn danger btn-sm" onclick="removeOffice('${escapeHtml(o.id)}')">Remove</button>
+    </div>`).join("");
+}
+function updateOfficeField(el){
+  const o = OFFICES.find(x=>x.id===el.dataset.id);
+  if(!o) return;
+  const v = el.value.trim();
+  o.name = v || o.name;
+  saveData();
+  refreshAll();
+  renderOfficeSettings();
+}
+function addOffice(){
+  const id = "o_" + Date.now();
+  OFFICES.push({id, name:"New Office"});
+  saveData();
+  refreshAll();
+  renderSettings();
+}
+function removeOffice(id){
+  if(OFFICES.length<=1){ alert("You need at least one office."); return; }
+  if(!confirm("Remove this office? Preparers assigned to it will move to the first remaining office.")) return;
+  OFFICES = OFFICES.filter(o=>o.id!==id);
+  const fallback = OFFICES[0].id;
+  PREPARERS.forEach(p=>{ if(p.officeId===id) p.officeId = fallback; });
+  saveData();
+  refreshAll();
+  renderSettings();
 }
 function renderPreparerSettings(){
   document.getElementById("preparer-list").innerHTML = PREPARERS.map(p=>`
     <div class="preparer-row">
       <input type="text" value="${escapeHtml(p.name)}" data-id="${escapeHtml(p.id)}" data-f="name" onchange="updatePreparerField(this)" style="flex:2;">
+      <select data-id="${escapeHtml(p.id)}" data-f="office" onchange="updatePreparerField(this)" style="flex:1;">${officeOptionsHtml(p.officeId)}</select>
       <input type="text" placeholder="Default ${Math.round((SETTINGS.defaultSplit||0)*100)}%" value="${p.splitOverride!=null?Math.round(Number(p.splitOverride)*100):''}" data-id="${escapeHtml(p.id)}" data-f="split" onchange="updatePreparerField(this)" style="flex:1;max-width:140px;">
       ${p.id===SETTINGS.currentPreparerId?'<span class="badge-you">You</span>':`<button class="icon-btn btn-sm" onclick="setCurrentPreparer('${escapeHtml(p.id)}')">Set as me</button>`}
       <button class="icon-btn danger btn-sm" onclick="removePreparer('${escapeHtml(p.id)}')">Remove</button>
@@ -1073,6 +1312,8 @@ function updatePreparerField(el){
   } else if(el.dataset.f==="split"){
     const v = el.value.trim();
     p.splitOverride = v==="" ? null : Math.min(1, Math.max(0, parseFloat(v)/100));
+  } else if(el.dataset.f==="office"){
+    p.officeId = el.value;
   }
   saveData();
   refreshAll();
@@ -1080,7 +1321,7 @@ function updatePreparerField(el){
 }
 function addPreparer(){
   const id = "p_" + Date.now();
-  PREPARERS.push({id, name:"New Preparer", splitOverride:null});
+  PREPARERS.push({id, name:"New Preparer", splitOverride:null, officeId:OFFICES[0].id});
   saveData();
   refreshAll();
   renderSettings();
@@ -1112,6 +1353,51 @@ function saveSettingsForm(){
   refreshAll();
 }
 
+/* ---------------- SECURITY / PIN LOCK ---------------- */
+function renderSecuritySettings(){
+  document.getElementById("set-pin-enabled").checked = !!SETTINGS.pinEnabled;
+  document.getElementById("set-pin").value = "";
+  document.getElementById("set-pin").placeholder = SETTINGS.pinEnabled && SETTINGS.pin ? "PIN is set — enter a new one to change it" : "Enter a new PIN";
+  document.getElementById("set-pin-field").style.display = document.getElementById("set-pin-enabled").checked ? "block" : "none";
+}
+function togglePinField(){
+  document.getElementById("set-pin-field").style.display = document.getElementById("set-pin-enabled").checked ? "block" : "none";
+}
+function saveSecurityForm(){
+  const enabled = document.getElementById("set-pin-enabled").checked;
+  const newPin = document.getElementById("set-pin").value.trim();
+  if(enabled){
+    if(newPin){
+      SETTINGS.pin = newPin;
+    } else if(!SETTINGS.pin){
+      alert("Set a PIN before enabling the lock screen.");
+      return;
+    }
+  } else {
+    SETTINGS.pin = "";
+  }
+  SETTINGS.pinEnabled = enabled;
+  saveData();
+  refreshAll();
+  alert("Security settings saved.");
+}
+function tryUnlock(){
+  const entered = document.getElementById("lock-pin").value;
+  if(entered && entered===SETTINGS.pin){
+    sessionStorage.setItem("prepprofit_unlocked", "1");
+    document.getElementById("lockScreen").style.display = "none";
+  } else {
+    document.getElementById("lock-error").textContent = "Incorrect PIN.";
+    document.getElementById("lock-pin").value = "";
+  }
+}
+function checkLock(){
+  if(SETTINGS.pinEnabled && SETTINGS.pin && sessionStorage.getItem("prepprofit_unlocked")!=="1"){
+    document.getElementById("lockScreen").style.display = "flex";
+    document.getElementById("lock-pin").addEventListener("keydown", e=>{ if(e.key==="Enter") tryUnlock(); });
+  }
+}
+
 /* ---------------- IMPORT: CSV + MANUAL ---------------- */
 const dropzone = document.getElementById("dropzone");
 const fileInput = document.getElementById("fileInput");
@@ -1141,12 +1427,12 @@ function parseCSV(text){
   const preparerId = document.getElementById("import-preparer").value;
   const rows = lines.slice(1).map(line=>{
     const cols = line.split(",").map(c=>c.trim().replace(/^"|"$/g,""));
-    return {
+    return normalizeReturn({
       id: cols[0]||"", client: cols[1]||"", year: parseInt(cols[2])||thisCalendarYear,
       service: cols[3]||"Schedule C", federal: parseFloat(cols[4])||0, fee: parseFloat(cols[5])||0,
       preparerId, refPartner:"", refEligible:false, refPaid:false, collected:true,
       month:new Date().getMonth()+1, payYear:thisCalendarYear
-    };
+    });
   }).filter(r=>r.id);
   pendingRows = rows;
   showConfirm(rows);
@@ -1199,10 +1485,16 @@ function addManual(){
     refPartner: document.getElementById("f-refpartner").value.trim(),
     refEligible: document.getElementById("f-refeligible").checked,
     refPaid:false, collected:true, month:new Date().getMonth()+1, payYear:thisCalendarYear,
+    efileStatus: document.getElementById("f-efile").value,
+    bankProduct: document.getElementById("f-bankproduct").checked,
+    bankFee: parseFloat(document.getElementById("f-bankfee").value)||0,
+    checklist: emptyChecklist(),
     _uid: ++uidCounter
   });
-  ["f-id","f-client","f-federal","f-fee","f-refpartner"].forEach(id=>document.getElementById(id).value="");
+  ["f-id","f-client","f-federal","f-fee","f-refpartner","f-bankfee"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("f-refeligible").checked=false;
+  document.getElementById("f-bankproduct").checked=false;
+  document.getElementById("f-efile").value="Not Started";
   saveData();
   refreshAll();
   goTo("log");
@@ -1225,8 +1517,8 @@ function download(filename, content, mime){
 function exportCSV(){
   const rows = RETURNS.map(derive);
   const csv = toCSV(rows,
-    ["Return ID","Client","Preparer","Year","Service","Federal","Fee","Preparer Earnings","Company Share","Net Refund","Collected"],
-    [r=>r.id, r=>r.client, r=>r.preparerName, r=>r.year, r=>r.service, r=>r.federal, r=>r.fee, r=>r.yourShare.toFixed(2), r=>r.companyShare.toFixed(2), r=>r.netRefund, r=>r.collected]
+    ["Return ID","Client","Preparer","Year","Service","Federal","Fee","Preparer Earnings","Company Share","Bank Fee","Net to Client","E-file Status","Docs Complete","Collected"],
+    [r=>r.id, r=>r.client, r=>r.preparerName, r=>r.year, r=>r.service, r=>r.federal, r=>r.fee, r=>r.yourShare.toFixed(2), r=>r.companyShare.toFixed(2), r=>r.bankFeeAmt.toFixed(2), r=>r.netToClient, r=>r.efileStatus, r=>`${r.docsDone}/${r.docsTotal}`, r=>r.collected]
   );
   download("client_job_log.csv", csv);
 }
@@ -1239,7 +1531,7 @@ function exportIncomeCSV(){
   download("income_summary.csv", csv);
 }
 function exportBackup(){
-  download("prepprofit_backup.json", JSON.stringify({RETURNS, PREPARERS, SETTINGS}, null, 2), "application/json");
+  download("prepprofit_backup.json", JSON.stringify({RETURNS, PREPARERS, OFFICES, SETTINGS}, null, 2), "application/json");
 }
 function importBackupFile(e){
   const file = e.target.files[0];
@@ -1250,8 +1542,12 @@ function importBackupFile(e){
       const data = JSON.parse(reader.result);
       if(!Array.isArray(data.RETURNS) || !Array.isArray(data.PREPARERS) || !data.SETTINGS) throw new Error("bad shape");
       RETURNS = data.RETURNS;
-      PREPARERS = data.PREPARERS.length ? data.PREPARERS : [{id:"p1", name:"You", splitOverride:null}];
+      OFFICES = Array.isArray(data.OFFICES) && data.OFFICES.length ? data.OFFICES : [{id:"o1", name:"Main Office"}];
+      PREPARERS = data.PREPARERS.length ? data.PREPARERS : [{id:"p1", name:"You", splitOverride:null, officeId:OFFICES[0].id}];
+      PREPARERS.forEach(p=>{ if(!p.officeId || !OFFICES.some(o=>o.id===p.officeId)) p.officeId = OFFICES[0].id; });
       SETTINGS = data.SETTINGS;
+      if(SETTINGS.pinEnabled===undefined) SETTINGS.pinEnabled = false;
+      if(SETTINGS.pin===undefined) SETTINGS.pin = "";
       assignUids();
       currentView = SETTINGS.lastView || "all";
       saveData();
@@ -1291,6 +1587,7 @@ function refreshAll(){
 loadData();
 initEditMonthOptions();
 refreshAll();
+checkLock();
 </script>
 </body>
 </html>
